@@ -90,7 +90,7 @@ public class WebModel {
 		return dbweb.eq("wbgid", wbgid).data(webinfo).update()!= null?0:99;
 	}
 	public JSONArray select() {
-		return dbweb.select();
+		return dbweb.limit(30).select();
 	}
 	
 	public JSONArray select(String webinfo) {
@@ -102,10 +102,10 @@ public class WebModel {
 			}
 			dbweb.eq(object2.toString(), object.get(object2.toString()));
 		}
-		return dbweb.select();
+		return dbweb.limit(20).select();
 	}
 	public JSONArray selectbyid(String wbgid) {
-		return dbweb.eq("_id", new ObjectId(wbgid)).select();
+		return dbweb.eq("_id", new ObjectId(wbgid)).limit(20).select();
 	}
 	public JSONObject page(int idx,int pageSize) {
 		JSONArray array = dbweb.page(idx, pageSize);

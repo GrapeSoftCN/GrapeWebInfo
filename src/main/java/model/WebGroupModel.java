@@ -53,7 +53,7 @@ public class WebGroupModel {
 	}
 
 	public JSONArray search() {
-		return dbwebgroup.select();
+		return dbwebgroup.limit(30).select();
 	}
 
 	public JSONArray select(String webinfo) {
@@ -65,7 +65,7 @@ public class WebGroupModel {
 			}
 			dbwebgroup.eq(object2.toString(), object.get(object2.toString()));
 		}
-		return dbwebgroup.select();
+		return dbwebgroup.limit(20).select();
 	}
 
 	public int update(String wbgid, String webinfo) {
@@ -137,7 +137,7 @@ public class WebGroupModel {
 	}
 
 	public String findbyfatherid(String fatherid) {
-		JSONArray array = dbwebgroup.eq("fatherid", fatherid).select();
+		JSONArray array = dbwebgroup.eq("fatherid", fatherid).limit(30).select();
 		JSONObject _obj;
 		String name = null;
 		for (Object object : array) {
