@@ -21,16 +21,15 @@ import esayhelper.formHelper.formdef;
 public class WebModel {
 	private static DBHelper dbweb;
 	private static formHelper _form;
-//	private static JSONObject _obj_session = new JSONObject();
-//	private static session session;
 	static {
-//		session = new session();
 		dbweb = new DBHelper("mongodb", "webinfo", "_id");
 		_form = dbweb.getChecker();
-//		_obj_session.put("webinfo",session.insertSession("webinfo", dbweb.select().toString()));
 	}
 	public WebModel(){
 		_form.putRule("host", formdef.notNull);
+		_form.putRule("logo", formdef.notNull);
+		_form.putRule("icp", formdef.notNull);
+		_form.putRule("title", formdef.notNull);
 	}
 	/**
 	 * 
@@ -76,9 +75,6 @@ public class WebModel {
 
 	public int update(String wbid,JSONObject webinfo) {
 		String ICP = webinfo.get("icp").toString();
-		if (!_form.checkRuleEx(webinfo)) {
-			return 1;
-		}
 		if (webinfo.containsKey("icp")) {
 			if (!check_icp(ICP)) {
 				return 2;
@@ -104,8 +100,8 @@ public class WebModel {
 		}
 		return dbweb.limit(20).select();
 	}
-	public JSONArray selectbyid(String wbgid) {
-		return dbweb.eq("_id", new ObjectId(wbgid)).limit(20).select();
+	public JSONObject selectbyid(String wbid) {
+		return dbweb.eq("_id", new ObjectId(wbid)).find();
 	}
 	public JSONObject page(int idx,int pageSize) {
 		JSONArray array = dbweb.page(idx, pageSize);

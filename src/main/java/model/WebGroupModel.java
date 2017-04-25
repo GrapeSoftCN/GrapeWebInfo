@@ -67,6 +67,9 @@ public class WebGroupModel {
 		}
 		return dbwebgroup.limit(20).select();
 	}
+	public JSONObject find(String wbid) {
+		return dbwebgroup.eq("_id", new ObjectId(wbid)).find();
+	}
 
 	public int update(String wbgid, String webinfo) {
 		// dbwebgroup.protectfield(field);

@@ -18,22 +18,35 @@ import model.WebModel;
  */
 public class WebGroup {
 	private WebGroupModel webgroup = new WebGroupModel();
-//	private WebModel webModel = new WebModel();
 	private HashMap<String, Object> defmap = new HashMap<>();
-
+//	private static int userPlv;
+//	static{
+//		userPlv = Integer.parseInt(execRequest._run("GrapeAuth/Auth/getUserPlv", null).toString());
+//	}
 	public WebGroup() {
 		defmap.put("ownid", 1);
 		defmap.put("sort", 0);
 		defmap.put("fatherid", 0); // 默认fatherid为0，为一级站群
-		defmap.put("wbgid", WebGroupModel.getID());
+//		defmap.put("wbgid", WebGroupModel.getID());
+		defmap.put("rPlv", 1000);  //读取  权限值
+		defmap.put("uPlv", 2000);  //修改  权限值
+		defmap.put("dPlv", 3000);  //删除  权限值
 	}
 
 	public String WebGroupInsert(String webgroupInfo) {
+//		String code = execRequest._run("GrapeAuth/Auth/InsertPLV", null).toString();
+//		if (!"0".equals(code)) {
+//			return model.resultMessage(4, "");
+//		}
 		JSONObject object = webgroup.AddMap(defmap, JSONHelper.string2json(webgroupInfo));
 		return webgroup.resultmessage(webgroup.add(object), "站群新增成功");
 	}
 
 	public String WebGroupDelete(String id) {
+//		int dplv = Integer.parseInt(model.find(id).get("dPlv").toString());
+//		if (userPlv<dplv) {
+//			return model.resultMessage(6, "");
+//		}
 		int code = 0;
 		String jsondtring = "{\"wbgid\":\"0\"}";
 		if (new WebModel().selectbyid(id).size() != 0) {
@@ -58,8 +71,14 @@ public class WebGroup {
 		object.put("records", webgroup.select(webinfo));
 		return webgroup.resultmessage(0, object.toString());
 	}
-
+	public String WebGroupFindBywbid(String wbid) {
+		return webgroup.find(wbid).toString();
+	}
 	public String WebGroupUpdate(String wbgid, String webgroupInfo) {
+//		int uplv = Integer.parseInt(model.find(id).get("uPlv").toString());
+//		if (userPlv<uplv) {
+//			return model.resultMessage(6, "");
+//		}
 		return webgroup.resultmessage(webgroup.update(wbgid, webgroupInfo), "站群修改成功");
 	}
 

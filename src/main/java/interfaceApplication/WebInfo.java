@@ -16,9 +16,11 @@ public class WebInfo {
 	private WebModel web = new WebModel();
 	HashMap<String, Object> map = new HashMap<>();
 	private JSONObject object = new JSONObject();
-
+//	private static int userPlv;
+//	static{
+//		userPlv = Integer.parseInt(execRequest._run("GrapeAuth/Auth/getUserPlv", null).toString());
+//	}
 	public WebInfo() {
-		map.put("wbid", WebModel.getID());
 		map.put("ownid", 0);
 		map.put("engerid", 0);
 		map.put("gov", "12");
@@ -31,6 +33,9 @@ public class WebInfo {
 		map.put("sort", 0);
 		map.put("authid", 0);
 		map.put("taskid", 0);
+		map.put("rPlv", 1000);  //读取  权限值
+		map.put("uPlv", 2000);  //修改  权限值
+		map.put("dPlv", 3000);  //删除  权限值
 	}
 
 	/**
@@ -41,6 +46,10 @@ public class WebInfo {
 	 *         6：网站描述字数超过限制
 	 */
 	public String WebInsert(String webInfo) {
+//		String code = execRequest._run("GrapeAuth/Auth/InsertPLV", null).toString();
+//		if (!"0".equals(code)) {
+//			return model.resultMessage(4, "");
+//		}
 		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
 		return web.resultmessage(web.addweb(object), "新增网站信息成功");
 	}
@@ -52,17 +61,21 @@ public class WebInfo {
 	 * @return
 	 */
 	public String WebDelete(String wbid) {
+//		int dplv = Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
+//		if (userPlv<dplv) {
+//			return model.resultMessage(6, "");
+//		}
 		return web.resultmessage(web.delete(wbid), "删除网站信息成功");
 	}
 
 	public String WebUpdate(String wbid, String WebInfo) {
+//		int dplv = Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
+//		if (userPlv<dplv) {
+//			return model.resultMessage(6, "");
+//		}
 		return web.resultmessage(web.update(wbid, JSONHelper.string2json(WebInfo)),
 				"网站信息更新成功");
 	}
-
-	// public String WebShow(){
-	// return web.select().toJSONString();
-	// }
 	public String Webfind(String wbinfo) {
 		JSONObject object = new JSONObject();
 		object.put("records", web.select(wbinfo));
@@ -94,5 +107,8 @@ public class WebInfo {
 
 	public String WebBatchDelete(String wbid) {
 		return web.resultmessage(web.delete(wbid.split(",")), "批量删除成功");
+	}
+	public String WebFindById(String wbid) {
+		return web.selectbyid(wbid).toString();
 	}
 }
