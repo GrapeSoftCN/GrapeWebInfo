@@ -100,8 +100,17 @@ public class WebModel {
 		}
 		return dbweb.limit(20).select();
 	}
-	public JSONObject selectbyid(String wbid) {
-		return dbweb.eq("_id", new ObjectId(wbid)).find();
+	public JSONArray selectbyid(String wbid) {
+		if (wbid.contains(",")) {
+			dbweb = (DBHelper) dbweb.or();
+			String[] wbids = wbid.split(",");
+			for (int i = 0,len = wbids.length; i < len; i++) {
+				dbweb.eq("_id", new ObjectId(wbids[i]));
+			}
+		}else{
+			dbweb = (DBHelper) dbweb.eq("_id", new ObjectId(wbid));
+		}
+		return dbweb.limit(10).select();
 	}
 	public JSONObject page(int idx,int pageSize) {
 		JSONArray array = dbweb.page(idx, pageSize);
