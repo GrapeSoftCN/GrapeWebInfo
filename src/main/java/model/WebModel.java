@@ -25,22 +25,19 @@ public class WebModel {
 		dbweb = new DBHelper("mongodb", "webinfo", "_id");
 		_form = dbweb.getChecker();
 	}
-	public WebModel(){
+
+	public WebModel() {
 		_form.putRule("host", formdef.notNull);
 		_form.putRule("logo", formdef.notNull);
 		_form.putRule("icp", formdef.notNull);
 		_form.putRule("title", formdef.notNull);
 	}
+
 	/**
 	 * 
 	 * @param webInfo
-	 * @return 
-	 * 1:必填数据没有填 
-	 * 2：ICP备案号格式错误 
-	 * 3:ICP已存在
-	 * 4: 公安网备案号格式错误 
-	 * 5：title已存在
-	 * 6：网站描述字数超过限制
+	 * @return 1:必填数据没有填 2：ICP备案号格式错误 3:ICP已存在 4: 公安网备案号格式错误 5：title已存在
+	 *         6：网站描述字数超过限制
 	 */
 	public int addweb(JSONObject webInfo) {
 		if (!_form.checkRuleEx(webInfo)) {
@@ -70,25 +67,27 @@ public class WebModel {
 	}
 
 	public int delete(String webid) {
-		return dbweb.findOne().eq("_id", new ObjectId(webid)).delete()!=null?0:99;
+		return dbweb.findOne().eq("_id", new ObjectId(webid)).delete() != null ? 0 : 99;
 	}
 
-	public int update(String wbid,JSONObject webinfo) {
+	public int update(String wbid, JSONObject webinfo) {
 		String ICP = webinfo.get("icp").toString();
 		if (webinfo.containsKey("icp")) {
 			if (!check_icp(ICP)) {
 				return 2;
 			}
 		}
-		return dbweb.eq("_id",new ObjectId(wbid)).data(webinfo).update()!= null?0:99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(webinfo).update() != null ? 0 : 99;
 	}
-	public int updatebywbgid(String wbgid,JSONObject webinfo) {
-		return dbweb.eq("wbgid", wbgid).data(webinfo).update()!= null?0:99;
+
+	public int updatebywbgid(String wbgid, JSONObject webinfo) {
+		return dbweb.eq("wbgid", wbgid).data(webinfo).update() != null ? 0 : 99;
 	}
+
 	public JSONArray select() {
 		return dbweb.limit(30).select();
 	}
-	
+
 	public JSONArray select(String webinfo) {
 		JSONObject object = JSONHelper.string2json(webinfo);
 		Set<Object> set = object.keySet();
@@ -100,85 +99,83 @@ public class WebModel {
 		}
 		return dbweb.limit(20).select();
 	}
+
 	public JSONArray selectbyid(String wbid) {
 		if (wbid.contains(",")) {
 			dbweb = (DBHelper) dbweb.or();
 			String[] wbids = wbid.split(",");
-			for (int i = 0,len = wbids.length; i < len; i++) {
+			for (int i = 0, len = wbids.length; i < len; i++) {
 				dbweb.eq("_id", new ObjectId(wbids[i]));
 			}
-		}else{
+		} else {
 			dbweb = (DBHelper) dbweb.eq("_id", new ObjectId(wbid));
 		}
 		return dbweb.limit(10).select();
 	}
-	public JSONObject page(int idx,int pageSize) {
+
+	public JSONObject page(int idx, int pageSize) {
 		JSONArray array = dbweb.page(idx, pageSize);
-		JSONObject object = new JSONObject(){
-			private static final long serialVersionUID = 1L;
-			{
-				put("totalSize", (int)Math.ceil((double)dbweb.count()/pageSize));
-				put("currentPage", idx);
-				put("pageSize", pageSize);
-				put("data", array);
-				
-			}
-		};
+		JSONObject object = new JSONObject();
+		object.put("totalSize", (int) Math.ceil((double) dbweb.count() / pageSize));
+		object.put("currentPage", idx);
+		object.put("pageSize", pageSize);
+		object.put("data", array);
 		return object;
 	}
-	public JSONObject page(String webinfo,int idx,int pageSize) {
+
+	public JSONObject page(String webinfo, int idx, int pageSize) {
 		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
 		for (Object object2 : set) {
 			dbweb.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
 		}
 		JSONArray array = dbweb.page(idx, pageSize);
-		JSONObject object = new JSONObject(){
-			private static final long serialVersionUID = 1L;
-
-			{
-				put("totalSize", (int)Math.ceil((double)dbweb.count()/pageSize));
-				put("currentPage", idx);
-				put("pageSize", pageSize);
-				put("data", array);
-				
-			}
-		};
+		JSONObject object = new JSONObject();
+		object.put("totalSize", (int) Math.ceil((double) dbweb.count() / pageSize));
+		object.put("currentPage", idx);
+		object.put("pageSize", pageSize);
+		object.put("data", array);
 		return object;
 	}
-	public int sort(String wbid,long num) {
+
+	public int sort(String wbid, long num) {
 		JSONObject object = new JSONObject();
 		object.put("sort", num);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update()!=null?0:99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
 	}
-	public int setwbgid(String wbid,String wbgid) {
+
+	public int setwbgid(String wbid, String wbgid) {
 		JSONObject object = new JSONObject();
 		object.put("wbgid", wbgid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update()!=null?0:99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
 	}
-	public int settempid(String wbid,String tempid) {
+
+	public int settempid(String wbid, String tempid) {
 		JSONObject object = new JSONObject();
 		object.put("tid", tempid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update()!=null?0:99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
 	}
+
 	public int delete(String[] arr) {
-		dbweb = (DBHelper)dbweb.or();
+		dbweb.or();
 		for (int i = 0; i < arr.length; i++) {
 			dbweb.eq("_id", arr[i]);
 		}
-		return dbweb.delete()!=null ? 0 : 3;
+		return dbweb.deleteAll() != arr.length ? 0 : 3;
 	}
+
 	/**
 	 * 匹配icp格式
 	 * 
 	 * @param icp
-	 *          icp格式为类似于 皖icp备11016779号 或 京ICP备05087018号2
+	 *            icp格式为类似于 皖icp备11016779号 或 京ICP备05087018号2
 	 * @return
 	 */
 	public boolean check_icp(String icp) {
 		return Check.check_icp(icp);
 	}
+
 	public boolean check_desp(String desp) {
-		return desp.length()<=1024;
+		return desp.length() <= 1024;
 	}
 
 	public JSONObject findWebByTitle(String title) {
@@ -190,7 +187,7 @@ public class WebModel {
 		JSONObject rs = dbweb.eq("icp", icp).find();
 		return rs;
 	}
-	
+
 	/**
 	 * 生成32位随机编码
 	 * 
@@ -200,15 +197,16 @@ public class WebModel {
 		String str = UUID.randomUUID().toString().trim();
 		return str.replace("-", "");
 	}
-	
+
 	/**
 	 * 将map添加至JSONObject中
+	 * 
 	 * @param map
 	 * @param object
 	 * @return
 	 */
-	public JSONObject AddMap(HashMap<String, Object> map,JSONObject object) {
-		if (map.entrySet()!=null) {
+	public JSONObject AddMap(HashMap<String, Object> map, JSONObject object) {
+		if (map.entrySet() != null) {
 			Iterator<Entry<String, Object>> iterator = map.entrySet().iterator();
 			while (iterator.hasNext()) {
 				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator.next();
@@ -219,7 +217,7 @@ public class WebModel {
 		}
 		return object;
 	}
-	
+
 	public String resultmessage(int num, String msg) {
 		String message = "";
 		switch (num) {

@@ -67,6 +67,7 @@ public class WebGroupModel {
 		}
 		return dbwebgroup.limit(20).select();
 	}
+
 	public JSONObject find(String wbid) {
 		return dbwebgroup.eq("_id", new ObjectId(wbid)).find();
 	}
@@ -102,17 +103,11 @@ public class WebGroupModel {
 
 	public JSONObject page(int idx, int pageSize) {
 		JSONArray array = dbwebgroup.page(idx, pageSize);
-		JSONObject object = new JSONObject() {
-			private static final long serialVersionUID = 1L;
-
-			{
-				put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
-				put("currentPage", idx);
-				put("pageSize", pageSize);
-				put("data", array);
-
-			}
-		};
+		JSONObject object = new JSONObject();
+		object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
+		object.put("currentPage", idx);
+		object.put("pageSize", pageSize);
+		object.put("data", array);
 		return object;
 	}
 
@@ -122,16 +117,11 @@ public class WebGroupModel {
 			dbwebgroup.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
 		}
 		JSONArray array = dbwebgroup.page(idx, pageSize);
-		JSONObject object = new JSONObject() {
-			private static final long serialVersionUID = 1L;
-			{
-				put("totlsize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
-				put("currentPage", idx);
-				put("PageSize", pageSize);
-				put("data", array);
-
-			}
-		};
+		JSONObject object = new JSONObject();
+		object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
+		object.put("currentPage", idx);
+		object.put("pageSize", pageSize);
+		object.put("data", array);
 		return object;
 	}
 
@@ -158,11 +148,11 @@ public class WebGroupModel {
 	// }
 
 	public int delete(String[] arr) {
-		dbwebgroup = (DBHelper) dbwebgroup.or();
+		dbwebgroup.or();
 		for (int i = 0; i < arr.length; i++) {
 			dbwebgroup.eq("_id", arr[i]);
 		}
-		return dbwebgroup.delete() != null ? 0 : 99;
+		return dbwebgroup.deleteAll() != arr.length ? 0 : 99;
 	}
 
 	/**
