@@ -160,7 +160,7 @@ public class WebModel {
 		for (int i = 0; i < arr.length; i++) {
 			dbweb.eq("_id", arr[i]);
 		}
-		return dbweb.deleteAll() != arr.length ? 0 : 3;
+		return dbweb.deleteAll() == arr.length ? 0 : 3;
 	}
 
 	/**

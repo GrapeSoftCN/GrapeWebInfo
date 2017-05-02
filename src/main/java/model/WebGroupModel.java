@@ -152,7 +152,7 @@ public class WebGroupModel {
 		for (int i = 0; i < arr.length; i++) {
 			dbwebgroup.eq("_id", arr[i]);
 		}
-		return dbwebgroup.deleteAll() != arr.length ? 0 : 99;
+		return dbwebgroup.deleteAll() == arr.length ? 0 : 99;
 	}
 
 	/**
