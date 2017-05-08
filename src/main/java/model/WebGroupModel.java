@@ -21,8 +21,10 @@ import esayhelper.jGrapeFW_Message;
 public class WebGroupModel {
 	private static DBHelper dbwebgroup;
 	private static formHelper _form;
+	private JSONObject _obj = new JSONObject();
+	
 	static {
-		dbwebgroup = new DBHelper("mongodb", "webgroup");
+		dbwebgroup = new DBHelper("mongodb", "wbGroup");
 		_form = dbwebgroup.getChecker();
 	}
 
@@ -52,11 +54,12 @@ public class WebGroupModel {
 		return dbwebgroup.eq("_id", new ObjectId(id)).delete() != null ? 0 : 99;
 	}
 
-	public JSONArray search() {
-		return dbwebgroup.limit(30).select();
+	public String search() {
+		JSONArray array = dbwebgroup.limit(30).select();
+		return resulmessage(array);
 	}
 
-	public JSONArray select(String webinfo) {
+	public String select(String webinfo) {
 		JSONObject object = JSONHelper.string2json(webinfo);
 		Set<Object> set = object.keySet();
 		for (Object object2 : set) {
@@ -65,7 +68,7 @@ public class WebGroupModel {
 			}
 			dbwebgroup.eq(object2.toString(), object.get(object2.toString()));
 		}
-		return dbwebgroup.limit(20).select();
+		return resulmessage(dbwebgroup.limit(20).select());
 	}
 
 	public JSONObject find(String wbid) {
@@ -101,17 +104,17 @@ public class WebGroupModel {
 		return dbwebgroup.eq("_id", new ObjectId(object.get("_id").toString())).data(_obj).update() != null ? 0 : 99;
 	}
 
-	public JSONObject page(int idx, int pageSize) {
+	public String page(int idx, int pageSize) {
 		JSONArray array = dbwebgroup.page(idx, pageSize);
 		JSONObject object = new JSONObject();
 		object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
-		return object;
+		return resulmessage(object);
 	}
 
-	public JSONObject page(String webinfo, int idx, int pageSize) {
+	public String page(String webinfo, int idx, int pageSize) {
 		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
 		for (Object object2 : set) {
 			dbwebgroup.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
@@ -122,7 +125,7 @@ public class WebGroupModel {
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
-		return object;
+		return resulmessage(object);
 	}
 
 	public JSONObject findByName(String name) {
@@ -156,16 +159,6 @@ public class WebGroupModel {
 	}
 
 	/**
-	 * 生成32位随机编码
-	 * 
-	 * @return
-	 */
-	public static String getID() {
-		String str = UUID.randomUUID().toString().trim();
-		return str.replace("-", "");
-	}
-
-	/**
 	 * 将map添加至JSONObject中
 	 * 
 	 * @param map
@@ -185,6 +178,14 @@ public class WebGroupModel {
 		return object;
 	}
 
+	private String resulmessage(JSONObject object){
+		_obj.put("records", object);
+		return resultmessage(0, _obj.toString());
+	}
+	private String resulmessage(JSONArray array){
+		_obj.put("records", array);
+		return resultmessage(0, _obj.toString());
+	}
 	public String resultmessage(int num, String message) {
 		String msg = "";
 		switch (num) {

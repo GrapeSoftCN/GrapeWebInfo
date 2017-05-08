@@ -51,7 +51,7 @@ public class WebInfo {
 //			return model.resultMessage(4, "");
 //		}
 		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
-		return web.resultmessage(web.addweb(object), "新增网站信息成功");
+		return web.resultMessage(web.addweb(object), "新增网站信息成功");
 	}
 
 	/**
@@ -65,7 +65,7 @@ public class WebInfo {
 //		if (userPlv<dplv) {
 //			return model.resultMessage(6, "");
 //		}
-		return web.resultmessage(web.delete(wbid), "删除网站信息成功");
+		return web.resultMessage(web.delete(wbid), "删除网站信息成功");
 	}
 
 	public String WebUpdate(String wbid, String WebInfo) {
@@ -73,42 +73,50 @@ public class WebInfo {
 //		if (userPlv<dplv) {
 //			return model.resultMessage(6, "");
 //		}
-		return web.resultmessage(web.update(wbid, JSONHelper.string2json(WebInfo)),
+		return web.resultMessage(web.update(wbid, JSONHelper.string2json(WebInfo)),
 				"网站信息更新成功");
 	}
+	//通过站群id更新网站信息
+	public String WebUpd(String wbid) {
+//		int dplv = Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
+//		if (userPlv<dplv) {
+//			return model.resultMessage(6, "");
+//		}
+		JSONObject webinfo = new JSONObject();
+		webinfo.put("wbgid", 0);
+		return web.resultMessage(web.updatebywbgid(wbid, webinfo),"网站信息更新成功");
+	}
 	public String Webfind(String wbinfo) {
-		JSONObject object = new JSONObject();
-		object.put("records", web.select(wbinfo));
-		return web.resultmessage(0, object.toString());
+		return web.select(wbinfo);
 	}
 
 	public String WebPage(int idx, int pageSize) {
-		object.put("records", web.page(idx, pageSize));
-		return web.resultmessage(0, object.toString());
+		return web.page(idx, pageSize);
 	}
 
 	public String WebPageBy(int idx, int pageSize, String webinfo) {
-		JSONObject object = new JSONObject();
-		object.put("records", web.page(webinfo, idx, pageSize));
-		return web.resultmessage(0, object.toString());
+		return web.page(webinfo, idx, pageSize);
 	}
 
 	public String WebSort(String wbid, int num) {
-		return web.resultmessage(web.sort(wbid, num), "排序值设置成功");
+		return web.resultMessage(web.sort(wbid, num), "排序值设置成功");
 	}
 
 	public String WebSetwbg(String wbid, String wbgid) {
-		return web.resultmessage(web.setwbgid(wbid, wbgid), "站点设置成功");
+		return web.resultMessage(web.setwbgid(wbid, wbgid), "站点设置成功");
 	}
 
 	public String setTemp(String wbid, String tempid) {
-		return web.resultmessage(web.settempid(wbid, tempid), "设置模版成功");
+		return web.resultMessage(web.settempid(wbid, tempid), "设置模版成功");
 	}
 
 	public String WebBatchDelete(String wbid) {
-		return web.resultmessage(web.delete(wbid.split(",")), "批量删除成功");
+		return web.resultMessage(web.delete(wbid.split(",")), "批量删除成功");
 	}
 	public String WebFindById(String wbid) {
-		return web.selectbyid(wbid).toString();
+		return web.selectbyid(wbid);
+	}
+	public String WebFindByWbId(String wbgid) {
+		return web.selectbyWbgid(wbgid);
 	}
 }

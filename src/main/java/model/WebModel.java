@@ -21,8 +21,10 @@ import esayhelper.formHelper.formdef;
 public class WebModel {
 	private static DBHelper dbweb;
 	private static formHelper _form;
+	private JSONObject _obj = new JSONObject();
+
 	static {
-		dbweb = new DBHelper("mongodb", "webinfo", "_id");
+		dbweb = new DBHelper("mongodb", "websiteList", "_id");
 		_form = dbweb.getChecker();
 	}
 
@@ -67,7 +69,8 @@ public class WebModel {
 	}
 
 	public int delete(String webid) {
-		return dbweb.findOne().eq("_id", new ObjectId(webid)).delete() != null ? 0 : 99;
+		return dbweb.findOne().eq("_id", new ObjectId(webid)).delete() != null
+				? 0 : 99;
 	}
 
 	public int update(String wbid, JSONObject webinfo) {
@@ -77,30 +80,29 @@ public class WebModel {
 				return 2;
 			}
 		}
-		return dbweb.eq("_id", new ObjectId(wbid)).data(webinfo).update() != null ? 0 : 99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(webinfo)
+				.update() != null ? 0 : 99;
 	}
 
 	public int updatebywbgid(String wbgid, JSONObject webinfo) {
-		return dbweb.eq("wbgid", wbgid).data(webinfo).update() != null ? 0 : 99;
+		return dbweb.eq("wbgid", wbgid).data(webinfo).updateAll() != 0 ? 0 : 99;
 	}
 
-	public JSONArray select() {
-		return dbweb.limit(30).select();
-	}
-
-	public JSONArray select(String webinfo) {
+	public String select(String webinfo) {
 		JSONObject object = JSONHelper.string2json(webinfo);
 		Set<Object> set = object.keySet();
 		for (Object object2 : set) {
 			if (object2.equals("_id")) {
-				dbweb.eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+				dbweb.eq("_id", new ObjectId(
+						object.get(object2.toString()).toString()));
 			}
 			dbweb.eq(object2.toString(), object.get(object2.toString()));
 		}
-		return dbweb.limit(20).select();
+		JSONArray array = dbweb.limit(20).select();
+		return resultMessage(array);
 	}
 
-	public JSONArray selectbyid(String wbid) {
+	public String selectbyid(String wbid) {
 		if (wbid.contains(",")) {
 			dbweb = (DBHelper) dbweb.or();
 			String[] wbids = wbid.split(",");
@@ -110,49 +112,60 @@ public class WebModel {
 		} else {
 			dbweb = (DBHelper) dbweb.eq("_id", new ObjectId(wbid));
 		}
-		return dbweb.limit(10).select();
+		JSONArray array = dbweb.limit(10).select();
+		return resultMessage(array);
 	}
 
-	public JSONObject page(int idx, int pageSize) {
+	public String selectbyWbgid(String wbgid) {
+		JSONArray array = dbweb.limit(20).select();
+		return resultMessage(array);
+	}
+	public String page(int idx, int pageSize) {
 		JSONArray array = dbweb.page(idx, pageSize);
 		JSONObject object = new JSONObject();
-		object.put("totalSize", (int) Math.ceil((double) dbweb.count() / pageSize));
+		object.put("totalSize",
+				(int) Math.ceil((double) dbweb.count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
-		return object;
+		return resultMessage(object);
 	}
 
-	public JSONObject page(String webinfo, int idx, int pageSize) {
+	public String page(String webinfo, int idx, int pageSize) {
 		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
 		for (Object object2 : set) {
-			dbweb.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+			dbweb.eq(object2.toString(),
+					JSONHelper.string2json(webinfo).get(object2.toString()));
 		}
 		JSONArray array = dbweb.page(idx, pageSize);
 		JSONObject object = new JSONObject();
-		object.put("totalSize", (int) Math.ceil((double) dbweb.count() / pageSize));
+		object.put("totalSize",
+				(int) Math.ceil((double) dbweb.count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
-		return object;
+		return resultMessage(object);
 	}
 
 	public int sort(String wbid, long num) {
 		JSONObject object = new JSONObject();
 		object.put("sort", num);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+				? 0 : 99;
 	}
 
 	public int setwbgid(String wbid, String wbgid) {
 		JSONObject object = new JSONObject();
 		object.put("wbgid", wbgid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+				? 0 : 99;
 	}
 
 	public int settempid(String wbid, String tempid) {
 		JSONObject object = new JSONObject();
 		object.put("tid", tempid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
+		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+				? 0 : 99;
 	}
 
 	public int delete(String[] arr) {
@@ -207,9 +220,11 @@ public class WebModel {
 	 */
 	public JSONObject AddMap(HashMap<String, Object> map, JSONObject object) {
 		if (map.entrySet() != null) {
-			Iterator<Entry<String, Object>> iterator = map.entrySet().iterator();
+			Iterator<Entry<String, Object>> iterator = map.entrySet()
+					.iterator();
 			while (iterator.hasNext()) {
-				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator.next();
+				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator
+						.next();
 				if (!object.containsKey(entry.getKey())) {
 					object.put(entry.getKey(), entry.getValue());
 				}
@@ -218,7 +233,16 @@ public class WebModel {
 		return object;
 	}
 
-	public String resultmessage(int num, String msg) {
+	private String resultMessage(JSONObject object) {
+		_obj.put("records", object);
+		return resultMessage(0, _obj.toString());
+	}
+	private String resultMessage(JSONArray array) {
+		_obj.put("records", array);
+		return resultMessage(0, _obj.toString());
+	}
+
+	public String resultMessage(int num, String msg) {
 		String message = "";
 		switch (num) {
 		case 0:
