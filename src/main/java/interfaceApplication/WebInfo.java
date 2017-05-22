@@ -15,7 +15,6 @@ import model.WebModel;
 public class WebInfo {
 	private WebModel web = new WebModel();
 	HashMap<String, Object> map = new HashMap<>();
-	private JSONObject object = new JSONObject();
 //	private static int userPlv;
 //	static{
 //		userPlv = Integer.parseInt(execRequest._run("GrapeAuth/Auth/getUserPlv", null).toString());

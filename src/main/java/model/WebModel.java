@@ -11,6 +11,8 @@ import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import apps.appsProxy;
+import database.db;
 import esayhelper.DBHelper;
 import esayhelper.JSONHelper;
 import esayhelper.formHelper;
@@ -24,7 +26,9 @@ public class WebModel {
 	private JSONObject _obj = new JSONObject();
 
 	static {
-		dbweb = new DBHelper("mongodb", "websiteList", "_id");
+		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(),
+				"websiteList", "_id");
+		// dbweb = new DBHelper("mongodb", "websiteList", "_id");
 		_form = dbweb.getChecker();
 	}
 
@@ -33,6 +37,10 @@ public class WebModel {
 		_form.putRule("logo", formdef.notNull);
 		_form.putRule("icp", formdef.notNull);
 		_form.putRule("title", formdef.notNull);
+	}
+
+	private db bind() {
+		return dbweb.bind(String.valueOf(appsProxy.appid()));
 	}
 
 	/**
@@ -65,11 +73,11 @@ public class WebModel {
 		if (!check_desp(webInfo.get("desp").toString())) {
 			return 6;
 		}
-		return dbweb.data(webInfo).insertOnce() != null ? 0 : 99;
+		return bind().data(webInfo).insertOnce() != null ? 0 : 99;
 	}
 
 	public int delete(String webid) {
-		return dbweb.findOne().eq("_id", new ObjectId(webid)).delete() != null
+		return bind().findOne().eq("_id", new ObjectId(webid)).delete() != null
 				? 0 : 99;
 	}
 
@@ -80,12 +88,12 @@ public class WebModel {
 				return 2;
 			}
 		}
-		return dbweb.eq("_id", new ObjectId(wbid)).data(webinfo)
+		return bind().eq("_id", new ObjectId(wbid)).data(webinfo)
 				.update() != null ? 0 : 99;
 	}
 
 	public int updatebywbgid(String wbgid, JSONObject webinfo) {
-		return dbweb.eq("wbgid", wbgid).data(webinfo).updateAll() != 0 ? 0 : 99;
+		return bind().eq("wbgid", wbgid).data(webinfo).updateAll() != 0 ? 0 : 99;
 	}
 
 	public String select(String webinfo) {
@@ -93,38 +101,39 @@ public class WebModel {
 		Set<Object> set = object.keySet();
 		for (Object object2 : set) {
 			if (object2.equals("_id")) {
-				dbweb.eq("_id", new ObjectId(
+				bind().eq("_id", new ObjectId(
 						object.get(object2.toString()).toString()));
 			}
-			dbweb.eq(object2.toString(), object.get(object2.toString()));
+			bind().eq(object2.toString(), object.get(object2.toString()));
 		}
-		JSONArray array = dbweb.limit(20).select();
+		JSONArray array = bind().limit(20).select();
 		return resultMessage(array);
 	}
 
 	public String selectbyid(String wbid) {
 		if (wbid.contains(",")) {
-			dbweb = (DBHelper) dbweb.or();
+			dbweb = (DBHelper) bind().or();
 			String[] wbids = wbid.split(",");
 			for (int i = 0, len = wbids.length; i < len; i++) {
-				dbweb.eq("_id", new ObjectId(wbids[i]));
+				bind().eq("_id", new ObjectId(wbids[i]));
 			}
 		} else {
-			dbweb = (DBHelper) dbweb.eq("_id", new ObjectId(wbid));
+			dbweb = (DBHelper) bind().eq("_id", new ObjectId(wbid));
 		}
-		JSONArray array = dbweb.limit(10).select();
+		JSONArray array = bind().limit(10).select();
 		return resultMessage(array);
 	}
 
 	public String selectbyWbgid(String wbgid) {
-		JSONArray array = dbweb.limit(20).select();
+		JSONArray array = bind().limit(20).select();
 		return resultMessage(array);
 	}
+
 	public String page(int idx, int pageSize) {
-		JSONArray array = dbweb.page(idx, pageSize);
+		JSONArray array = bind().page(idx, pageSize);
 		JSONObject object = new JSONObject();
 		object.put("totalSize",
-				(int) Math.ceil((double) dbweb.count() / pageSize));
+				(int) Math.ceil((double) bind().count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
@@ -134,13 +143,13 @@ public class WebModel {
 	public String page(String webinfo, int idx, int pageSize) {
 		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
 		for (Object object2 : set) {
-			dbweb.eq(object2.toString(),
+			bind().eq(object2.toString(),
 					JSONHelper.string2json(webinfo).get(object2.toString()));
 		}
-		JSONArray array = dbweb.page(idx, pageSize);
+		JSONArray array = bind().page(idx, pageSize);
 		JSONObject object = new JSONObject();
 		object.put("totalSize",
-				(int) Math.ceil((double) dbweb.count() / pageSize));
+				(int) Math.ceil((double) bind().count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
@@ -150,30 +159,30 @@ public class WebModel {
 	public int sort(String wbid, long num) {
 		JSONObject object = new JSONObject();
 		object.put("sort", num);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
 				? 0 : 99;
 	}
 
 	public int setwbgid(String wbid, String wbgid) {
 		JSONObject object = new JSONObject();
 		object.put("wbgid", wbgid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
 				? 0 : 99;
 	}
 
 	public int settempid(String wbid, String tempid) {
 		JSONObject object = new JSONObject();
 		object.put("tid", tempid);
-		return dbweb.eq("_id", new ObjectId(wbid)).data(object).update() != null
+		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
 				? 0 : 99;
 	}
 
 	public int delete(String[] arr) {
-		dbweb.or();
+		bind().or();
 		for (int i = 0; i < arr.length; i++) {
-			dbweb.eq("_id", arr[i]);
+			bind().eq("_id", arr[i]);
 		}
-		return dbweb.deleteAll() == arr.length ? 0 : 3;
+		return bind().deleteAll() == arr.length ? 0 : 3;
 	}
 
 	/**
@@ -192,12 +201,12 @@ public class WebModel {
 	}
 
 	public JSONObject findWebByTitle(String title) {
-		JSONObject rs = dbweb.eq("title", title).find();
+		JSONObject rs = bind().eq("title", title).find();
 		return rs;
 	}
 
 	public JSONObject findWebByICP(String icp) {
-		JSONObject rs = dbweb.eq("icp", icp).find();
+		JSONObject rs = bind().eq("icp", icp).find();
 		return rs;
 	}
 
@@ -237,6 +246,7 @@ public class WebModel {
 		_obj.put("records", object);
 		return resultMessage(0, _obj.toString());
 	}
+
 	private String resultMessage(JSONArray array) {
 		_obj.put("records", array);
 		return resultMessage(0, _obj.toString());

@@ -4,13 +4,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Map.Entry;
 
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import apps.appsProxy;
+import database.db;
 import esayhelper.DBHelper;
 import esayhelper.JSONHelper;
 import esayhelper.formHelper;
@@ -22,9 +23,10 @@ public class WebGroupModel {
 	private static DBHelper dbwebgroup;
 	private static formHelper _form;
 	private JSONObject _obj = new JSONObject();
-	
+
 	static {
-		dbwebgroup = new DBHelper("mongodb", "wbGroup");
+		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(),
+				"wbGroup");
 		_form = dbwebgroup.getChecker();
 	}
 
@@ -32,6 +34,9 @@ public class WebGroupModel {
 		_form.putRule("name", formdef.notNull);
 	}
 
+	private db bind(){
+		return dbwebgroup.bind(String.valueOf(appsProxy.appid()));
+	}
 	/**
 	 * 新增站群
 	 * 
@@ -47,15 +52,15 @@ public class WebGroupModel {
 		if (findByName(name) != null) {
 			return 2;
 		}
-		return dbwebgroup.data(webgroupInfo).insertOnce() != null ? 0 : 99;
+		return bind().data(webgroupInfo).insertOnce() != null ? 0 : 99;
 	}
 
 	public int delete(String id) {
-		return dbwebgroup.eq("_id", new ObjectId(id)).delete() != null ? 0 : 99;
+		return bind().eq("_id", new ObjectId(id)).delete() != null ? 0 : 99;
 	}
 
 	public String search() {
-		JSONArray array = dbwebgroup.limit(30).select();
+		JSONArray array = bind().limit(30).select();
 		return resulmessage(array);
 	}
 
@@ -64,19 +69,20 @@ public class WebGroupModel {
 		Set<Object> set = object.keySet();
 		for (Object object2 : set) {
 			if (object2.equals("_id")) {
-				dbwebgroup.eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+				bind().eq("_id", new ObjectId(
+						object.get(object2.toString()).toString()));
 			}
-			dbwebgroup.eq(object2.toString(), object.get(object2.toString()));
+			bind().eq(object2.toString(), object.get(object2.toString()));
 		}
-		return resulmessage(dbwebgroup.limit(20).select());
+		return resulmessage(bind().limit(20).select());
 	}
 
 	public JSONObject find(String wbid) {
-		return dbwebgroup.eq("_id", new ObjectId(wbid)).find();
+		return bind().eq("_id", new ObjectId(wbid)).find();
 	}
 
 	public int update(String wbgid, String webinfo) {
-		// dbwebgroup.protectfield(field);
+		// bind().protectfield(field);
 		JSONObject _webinfo = JSONHelper.string2json(webinfo);
 		System.out.println(_webinfo);
 		// 非空字段判断
@@ -89,7 +95,8 @@ public class WebGroupModel {
 				return 2;
 			}
 		}
-		JSONObject object = dbwebgroup.eq("_id", new ObjectId(wbgid)).data(_webinfo).update();
+		JSONObject object = bind().eq("_id", new ObjectId(wbgid))
+				.data(_webinfo).update();
 		return object != null ? 0 : 99;
 	}
 
@@ -101,13 +108,15 @@ public class WebGroupModel {
 		if (object.containsKey("fatherid")) {
 			_obj.put("fatherid", object.get("fatherid").toString());
 		}
-		return dbwebgroup.eq("_id", new ObjectId(object.get("_id").toString())).data(_obj).update() != null ? 0 : 99;
+		return bind().eq("_id", new ObjectId(object.get("_id").toString()))
+				.data(_obj).update() != null ? 0 : 99;
 	}
 
 	public String page(int idx, int pageSize) {
-		JSONArray array = dbwebgroup.page(idx, pageSize);
+		JSONArray array = bind().page(idx, pageSize);
 		JSONObject object = new JSONObject();
-		object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
+		object.put("totalSize",
+				(int) Math.ceil((double) bind().count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
@@ -117,11 +126,13 @@ public class WebGroupModel {
 	public String page(String webinfo, int idx, int pageSize) {
 		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
 		for (Object object2 : set) {
-			dbwebgroup.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+			bind().eq(object2.toString(),
+					JSONHelper.string2json(webinfo).get(object2.toString()));
 		}
-		JSONArray array = dbwebgroup.page(idx, pageSize);
+		JSONArray array = bind().page(idx, pageSize);
 		JSONObject object = new JSONObject();
-		object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
+		object.put("totalSize",
+				(int) Math.ceil((double) bind().count() / pageSize));
 		object.put("currentPage", idx);
 		object.put("pageSize", pageSize);
 		object.put("data", array);
@@ -129,11 +140,12 @@ public class WebGroupModel {
 	}
 
 	public JSONObject findByName(String name) {
-		return dbwebgroup.eq("name", name).find();
+		return bind().eq("name", name).find();
 	}
 
 	public String findbyfatherid(String fatherid) {
-		JSONArray array = dbwebgroup.eq("fatherid", fatherid).limit(30).select();
+		JSONArray array = bind().eq("fatherid", fatherid).limit(30)
+				.select();
 		JSONObject _obj;
 		String name = null;
 		for (Object object : array) {
@@ -146,16 +158,16 @@ public class WebGroupModel {
 	// public String setfatherid(String wbgid, String fathrid) {
 	// JSONObject _obj = new JSONObject();
 	// _obj.put("fatherid", fathrid);
-	// return dbwebgroup.eq("_id", new
+	// return bind().eq("_id", new
 	// ObjectId(wbgid)).data(_obj).update().toString();
 	// }
 
 	public int delete(String[] arr) {
-		dbwebgroup.or();
+		bind().or();
 		for (int i = 0; i < arr.length; i++) {
-			dbwebgroup.eq("_id", arr[i]);
+			bind().eq("_id", arr[i]);
 		}
-		return dbwebgroup.deleteAll() == arr.length ? 0 : 99;
+		return bind().deleteAll() == arr.length ? 0 : 99;
 	}
 
 	/**
@@ -167,9 +179,11 @@ public class WebGroupModel {
 	 */
 	public JSONObject AddMap(HashMap<String, Object> map, JSONObject object) {
 		if (map.entrySet() != null) {
-			Iterator<Entry<String, Object>> iterator = map.entrySet().iterator();
+			Iterator<Entry<String, Object>> iterator = map.entrySet()
+					.iterator();
 			while (iterator.hasNext()) {
-				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator.next();
+				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator
+						.next();
 				if (!object.containsKey(entry.getKey())) {
 					object.put(entry.getKey(), entry.getValue());
 				}
@@ -178,14 +192,16 @@ public class WebGroupModel {
 		return object;
 	}
 
-	private String resulmessage(JSONObject object){
+	private String resulmessage(JSONObject object) {
 		_obj.put("records", object);
 		return resultmessage(0, _obj.toString());
 	}
-	private String resulmessage(JSONArray array){
+
+	private String resulmessage(JSONArray array) {
 		_obj.put("records", array);
 		return resultmessage(0, _obj.toString());
 	}
+
 	public String resultmessage(int num, String message) {
 		String msg = "";
 		switch (num) {

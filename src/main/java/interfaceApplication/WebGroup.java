@@ -1,18 +1,13 @@
 package interfaceApplication;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.poi.util.ArrayUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import esayhelper.JSONHelper;
-import jodd.util.ArraysUtil;
 import model.WebGroupModel;
-import model.WebModel;
 import rpc.execRequest;
 
 /**
@@ -93,12 +88,10 @@ public class WebGroup {
 				"站群修改成功");
 	}
 
-	@SuppressWarnings("unchecked")
 	public String WebGroupPage(int idx, int pageSize) {
 		return webgroup.page(idx, pageSize);
 	}
 
-	@SuppressWarnings("unchecked")
 	public String WebGroupPageBy(int idx, int pageSize, String webinfo) {
 		return webgroup.page(webinfo, idx, pageSize);
 	}
