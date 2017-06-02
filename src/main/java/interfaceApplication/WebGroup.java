@@ -1,14 +1,16 @@
 package interfaceApplication;
 
+import java.io.FileInputStream;
 import java.util.HashMap;
+import java.util.Properties;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import apps.appsProxy;
 import esayhelper.JSONHelper;
 import model.WebGroupModel;
-import rpc.execRequest;
 
 /**
  * 站群 备注：涉及到的id，都是数据表中的_id 返回数据类型为{"message":显示数据或操作提示,"errorcode":错误码}
@@ -39,30 +41,33 @@ public class WebGroup {
 		// if (!"0".equals(code)) {
 		// return model.resultMessage(4, "");
 		// }
-		JSONObject object = webgroup.AddMap(defmap,
-				JSONHelper.string2json(webgroupInfo));
+		JSONObject object = webgroup.AddMap(defmap, JSONHelper.string2json(webgroupInfo));
 		return webgroup.resultmessage(webgroup.add(object), "站群新增成功");
 	}
 
 	public String WebGroupDelete(String id) {
 		int code = 0;
-		// 判断该站群下，是否存在网站
-		String message = execRequest
-				._run("GrapeWebInfo/WebInfo/WebFindByWbId/s:" + id, null)
-				.toString();
-		String records = JSONHelper.string2json(message).get("message")
-				.toString();
-		JSONArray array = JSONHelper.string2array(
-				JSONHelper.string2json(records).get("records").toString());
-		if (array.size()!=0) {
-			message = execRequest
-					._run("GrapeWebInfo/WebInfo/WebUpd/s:" + id, null)
-					.toString();
-			long num = (long) JSONHelper.string2json(message).get("errorcode");
-			code = Integer.parseInt(String.valueOf(num));
-		}
-		if (code==0) {
-			code = webgroup.delete(id);
+		try {
+			// 判断该站群下，是否存在网站
+			String message = appsProxy
+					.proxyCall(callhost(), appsProxy.appid() + "/17/WebInfo/WebFindByWbId/s:" + id, null, "").toString();
+			if (JSONHelper.string2json(message)!=null) {
+				String records = JSONHelper.string2json(message).get("message").toString();
+				JSONArray array = JSONHelper.string2array(JSONHelper.string2json(records).get("records").toString());
+				if (array.size() != 0) {
+					message = appsProxy
+							.proxyCall(callhost(), appsProxy.appid() + "/17/WebInfo/WebUpd/s:" + id, null,"").toString();
+					if (JSONHelper.string2json(message)!=null) {
+						long num = (long) JSONHelper.string2json(message).get("errorcode");
+						code = Integer.parseInt(String.valueOf(num));
+					}
+				}
+			}
+			if (code == 0) {
+				code = webgroup.delete(id);
+			}
+		} catch (Exception e) {
+			code = 99;
 		}
 		return webgroup.resultmessage(code, "站群删除成功");
 	}
@@ -84,8 +89,7 @@ public class WebGroup {
 		// if (userPlv<uplv) {
 		// return model.resultMessage(6, "");
 		// }
-		return webgroup.resultmessage(webgroup.update(wbgid, webgroupInfo),
-				"站群修改成功");
+		return webgroup.resultmessage(webgroup.update(wbgid, webgroupInfo), "站群修改成功");
 	}
 
 	public String WebGroupPage(int idx, int pageSize) {
@@ -116,9 +120,7 @@ public class WebGroup {
 	 * @return
 	 */
 	public String WebGroupSort(String webinfo) {
-		return webgroup.resultmessage(
-				webgroup.sortAndFatherid(JSONHelper.string2json(webinfo)),
-				"设置排序值成功");
+		return webgroup.resultmessage(webgroup.sortAndFatherid(JSONHelper.string2json(webinfo)), "设置排序值成功");
 	}
 
 	/**
@@ -128,13 +130,26 @@ public class WebGroup {
 	 * @return
 	 */
 	public String WebGroupSetfatherid(String webinfo) {
-		return webgroup.resultmessage(
-				webgroup.sortAndFatherid(JSONHelper.string2json(webinfo)),
-				"设置上级站群成功");
+		return webgroup.resultmessage(webgroup.sortAndFatherid(JSONHelper.string2json(webinfo)), "设置上级站群成功");
 	}
 
 	public String WebGroupBatchDelete(String arrys) {
-		return webgroup.resultmessage(webgroup.delete(arrys.split(",")),
-				"批量删除成功");
+		return webgroup.resultmessage(webgroup.delete(arrys.split(",")), "批量删除成功");
+	}
+
+	private String callhost() {
+		return getAppIp("host").split("/")[0];
+	}
+
+	private String getAppIp(String key) {
+		String value = "";
+		try {
+			Properties pro = new Properties();
+			pro.load(new FileInputStream("URLConfig.properties"));
+			value = pro.getProperty(key);
+		} catch (Exception e) {
+			value = "";
+		}
+		return value;
 	}
 }

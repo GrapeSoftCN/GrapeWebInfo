@@ -3,31 +3,36 @@ package model;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.ObjectUtils.Null;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import apps.appsProxy;
+import authority.privilige;
 import database.db;
 import esayhelper.DBHelper;
 import esayhelper.JSONHelper;
 import esayhelper.formHelper;
 import esayhelper.jGrapeFW_Message;
 import esayhelper.formHelper.formdef;
+import nlogger.nlogger;
+import rpc.execRequest;
+import session.session;
 
 @SuppressWarnings("unchecked")
 public class WebModel {
 	private static DBHelper dbweb;
 	private static formHelper _form;
 	private JSONObject _obj = new JSONObject();
+	// private privilige privil = new
+	// privilige(execRequest.getChannelValue("GrapeSID").toString());
 
 	static {
-		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(),
-				"websiteList", "_id");
+		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(), "websiteList", "_id");
 		// dbweb = new DBHelper("mongodb", "websiteList", "_id");
 		_form = dbweb.getChecker();
 	}
@@ -50,139 +55,285 @@ public class WebModel {
 	 *         6：网站描述字数超过限制
 	 */
 	public int addweb(JSONObject webInfo) {
-		if (!_form.checkRuleEx(webInfo)) {
-			return 1;
-		}
-		String ICP = webInfo.get("icp").toString();
-		if (!check_icp(ICP)) {
-			return 2;
-		}
-		String policeid = webInfo.get("policeid").toString();
-		if (!policeid.equals("")) {
-			if (!Check.CheckIcpNum(policeid)) {
-				return 4;
+		int code = 99;
+		if (webInfo != null) {
+			try {
+				if (!_form.checkRuleEx(webInfo)) {
+					return 1;
+				}
+				String ICP = webInfo.get("icp").toString();
+				if (!check_icp(ICP)) {
+					return 2;
+				}
+				if (findWebByICP(ICP) != null) {
+					return 3;
+				}
+				if (webInfo.containsKey("policeid")) {
+					String policeid = webInfo.get("policeid").toString();
+					if (!policeid.equals("")) {
+						if (!Check.CheckIcpNum(policeid)) {
+							return 4;
+						}
+					}
+				}
+				String webname = webInfo.get("title").toString();
+				if (findWebByTitle(webname) != null) {
+					return 5;
+				}
+				if (webInfo.containsKey("desp")) {
+					if (!check_desp(webInfo.get("desp").toString())) {
+						return 6;
+					}
+				}
+				Object object = bind().data(webInfo).insertOnce();
+				code = (object != null ? 0 : 99);
+			} catch (Exception e) {
+				nlogger.logout(e);
+				code = 99;
 			}
 		}
-		if (findWebByICP(ICP) != null) {
-			return 3;
-		}
-		String webname = webInfo.get("title").toString();
-		if (findWebByTitle(webname) != null) {
-			return 5;
-		}
-		if (!check_desp(webInfo.get("desp").toString())) {
-			return 6;
-		}
-		return bind().data(webInfo).insertOnce() != null ? 0 : 99;
+		return code;
 	}
 
 	public int delete(String webid) {
-		return bind().findOne().eq("_id", new ObjectId(webid)).delete() != null
-				? 0 : 99;
+		int code = 99;
+		try {
+			JSONObject object = bind().findOne().eq("_id", new ObjectId(webid)).delete();
+			code = (object != null ? 0 : 99);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			code = 99;
+		}
+		return code;
 	}
 
 	public int update(String wbid, JSONObject webinfo) {
-		String ICP = webinfo.get("icp").toString();
-		if (webinfo.containsKey("icp")) {
-			if (!check_icp(ICP)) {
-				return 2;
+		int code = 99;
+		if (webinfo != null) {
+			try {
+				if (webinfo.containsKey("icp")) {
+					String ICP = webinfo.get("icp").toString();
+					if (!check_icp(ICP)) {
+						return 2;
+					}
+				}
+				JSONObject object = bind().eq("_id", new ObjectId(wbid)).data(webinfo).update();
+				code = (object != null ? 0 : 99);
+			} catch (Exception e) {
+				code = 99;
 			}
 		}
-		return bind().eq("_id", new ObjectId(wbid)).data(webinfo)
-				.update() != null ? 0 : 99;
+		return code;
 	}
 
 	public int updatebywbgid(String wbgid, JSONObject webinfo) {
-		return bind().eq("wbgid", wbgid).data(webinfo).updateAll() != 0 ? 0 : 99;
+		int code = 99;
+		if (webinfo != null) {
+			try {
+				long codes = bind().eq("wbgid", wbgid).data(webinfo).updateAll();
+				code = (codes != 0 ? 0 : 99);
+			} catch (Exception e) {
+				code = 99;
+			}
+		}
+		return code;
 	}
 
 	public String select(String webinfo) {
+		JSONArray array = null;
 		JSONObject object = JSONHelper.string2json(webinfo);
-		Set<Object> set = object.keySet();
-		for (Object object2 : set) {
-			if (object2.equals("_id")) {
-				bind().eq("_id", new ObjectId(
-						object.get(object2.toString()).toString()));
+		if (object != null) {
+			try {
+				array = new JSONArray();
+				for (Object object2 : object.keySet()) {
+					if (object2.equals("_id")) {
+						bind().eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+					}
+					bind().eq(object2.toString(), object.get(object2.toString()));
+				}
+				array = bind().limit(20).select();
+			} catch (Exception e) {
+				array = null;
 			}
-			bind().eq(object2.toString(), object.get(object2.toString()));
 		}
-		JSONArray array = bind().limit(20).select();
 		return resultMessage(array);
 	}
 
 	public String selectbyid(String wbid) {
 		if (wbid.contains(",")) {
-			dbweb = (DBHelper) bind().or();
+			bind().or();
 			String[] wbids = wbid.split(",");
 			for (int i = 0, len = wbids.length; i < len; i++) {
 				bind().eq("_id", new ObjectId(wbids[i]));
 			}
 		} else {
-			dbweb = (DBHelper) bind().eq("_id", new ObjectId(wbid));
+			bind().eq("_id", new ObjectId(wbid));
 		}
 		JSONArray array = bind().limit(10).select();
 		return resultMessage(array);
 	}
 
+	private JSONObject findbyid(String wbid) {
+		JSONObject object = null;
+		try {
+			object = new JSONObject();
+			object = bind().eq("_id", new ObjectId(wbid)).field("ownid").find();
+		} catch (Exception e) {
+			nlogger.logout(e);
+			object = null;
+		}
+		return object;
+	}
+
 	public String selectbyWbgid(String wbgid) {
-		JSONArray array = bind().limit(20).select();
+		JSONArray array = null;
+		try {
+			array = new JSONArray();
+			array = bind().eq("wbgid", wbgid).limit(20).select();
+		} catch (Exception e) {
+			array = null;
+		}
 		return resultMessage(array);
 	}
 
 	public String page(int idx, int pageSize) {
-		JSONArray array = bind().page(idx, pageSize);
-		JSONObject object = new JSONObject();
-		object.put("totalSize",
-				(int) Math.ceil((double) bind().count() / pageSize));
-		object.put("currentPage", idx);
-		object.put("pageSize", pageSize);
-		object.put("data", array);
+		JSONObject object = null;
+		try {
+			JSONArray array = bind().page(idx, pageSize);
+			object = new JSONObject();
+			object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+			object.put("currentPage", idx);
+			object.put("pageSize", pageSize);
+			object.put("data", array);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			object = null;
+		}
 		return resultMessage(object);
 	}
 
 	public String page(String webinfo, int idx, int pageSize) {
-		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
-		for (Object object2 : set) {
-			bind().eq(object2.toString(),
-					JSONHelper.string2json(webinfo).get(object2.toString()));
+		JSONObject object = null;
+		JSONObject obj = JSONHelper.string2json(webinfo);
+		if (obj != null) {
+			try {
+				for (Object object2 : obj.keySet()) {
+					bind().eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+				}
+				JSONArray array = bind().page(idx, pageSize);
+				object = new JSONObject();
+				object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+				object.put("currentPage", idx);
+				object.put("pageSize", pageSize);
+				object.put("data", array);
+			} catch (Exception e) {
+				nlogger.logout(e);
+				object = null;
+			}
 		}
-		JSONArray array = bind().page(idx, pageSize);
-		JSONObject object = new JSONObject();
-		object.put("totalSize",
-				(int) Math.ceil((double) bind().count() / pageSize));
-		object.put("currentPage", idx);
-		object.put("pageSize", pageSize);
-		object.put("data", array);
 		return resultMessage(object);
 	}
 
 	public int sort(String wbid, long num) {
+		int code = 99;
 		JSONObject object = new JSONObject();
 		object.put("sort", num);
-		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
-				? 0 : 99;
+		if (object != null) {
+			try {
+				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				code = (object2 != null ? 0 : 99);
+			} catch (Exception e) {
+				code = 99;
+			}
+		}
+		return code;
 	}
 
 	public int setwbgid(String wbid, String wbgid) {
+		int code = 99;
 		JSONObject object = new JSONObject();
 		object.put("wbgid", wbgid);
-		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
-				? 0 : 99;
+		if (object != null) {
+			try {
+				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				code = (object2 != null ? 0 : 99);
+			} catch (Exception e) {
+				code = 99;
+			}
+		}
+		return code;
 	}
 
 	public int settempid(String wbid, String tempid) {
+		int code = 99;
 		JSONObject object = new JSONObject();
 		object.put("tid", tempid);
-		return bind().eq("_id", new ObjectId(wbid)).data(object).update() != null
-				? 0 : 99;
+		if (object != null) {
+			try {
+				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				code = (object2 != null ? 0 : 99);
+			} catch (Exception e) {
+				code = 99;
+			}
+		}
+		return code;
+	}
+
+	// 切换网站，替换session会话中的currentWeb值
+	public String WebSwitch(String wbid) {
+		String sid = "";
+		session session = new session();
+		JSONObject obj = null;
+		Object object = (String) execRequest.getChannelValue("sid");
+		if (object != null) {
+			try {
+				obj = (JSONObject) session.getSession(object.toString());
+				if (obj!=null) {
+					obj.put("currentWeb", wbid);
+					sid = session.setget(session.get(object.toString()), obj.toString());
+				}
+			} catch (Exception e) {
+				nlogger.logout(e);
+				sid = "";
+			}
+		}
+		return resultMessage(sid != "" ? 0 : 99, "ok");
+	}
+
+	public String setManage(String wbid, String userid) {
+		int code = 99;
+		// 获取该网站已存在的管理员
+		JSONObject object = findbyid(wbid);
+		if (object != null) {
+			try {
+				String ownid = (String) object.get("ownid");
+				if (!("").equals(ownid)) {
+					userid = String.join(",", ownid, userid);
+				}
+				object.put("ownid", userid);
+				code = bind().eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
+			} catch (Exception e) {
+				nlogger.logout(e);
+				code = 99;
+			}
+		}
+		return resultMessage(code, "设置网站管理员成功");
 	}
 
 	public int delete(String[] arr) {
-		bind().or();
-		for (int i = 0; i < arr.length; i++) {
-			bind().eq("_id", arr[i]);
+		int code = 99;
+		try {
+			bind().or();
+			for (int i = 0, len = arr.length; i < len; i++) {
+				bind().eq("_id", new ObjectId(arr[i]));
+			}
+			long codes = bind().deleteAll();
+			code = (Integer.parseInt(String.valueOf(codes)) == arr.length ? 0 : 99);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			code = 99;
 		}
-		return bind().deleteAll() == arr.length ? 0 : 3;
+		return code;
 	}
 
 	/**
@@ -228,14 +379,14 @@ public class WebModel {
 	 * @return
 	 */
 	public JSONObject AddMap(HashMap<String, Object> map, JSONObject object) {
-		if (map.entrySet() != null) {
-			Iterator<Entry<String, Object>> iterator = map.entrySet()
-					.iterator();
-			while (iterator.hasNext()) {
-				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator
-						.next();
-				if (!object.containsKey(entry.getKey())) {
-					object.put(entry.getKey(), entry.getValue());
+		if (object != null) {
+			if (map.entrySet() != null) {
+				Iterator<Entry<String, Object>> iterator = map.entrySet().iterator();
+				while (iterator.hasNext()) {
+					Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator.next();
+					if (!object.containsKey(entry.getKey())) {
+						object.put(entry.getKey(), entry.getValue());
+					}
 				}
 			}
 		}
@@ -243,11 +394,17 @@ public class WebModel {
 	}
 
 	private String resultMessage(JSONObject object) {
+		if (object == null) {
+			object = new JSONObject();
+		}
 		_obj.put("records", object);
 		return resultMessage(0, _obj.toString());
 	}
 
 	private String resultMessage(JSONArray array) {
+		if (array == null) {
+			array = new JSONArray();
+		}
 		_obj.put("records", array);
 		return resultMessage(0, _obj.toString());
 	}

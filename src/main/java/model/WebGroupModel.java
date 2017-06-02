@@ -3,7 +3,6 @@ package model;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import org.bson.types.ObjectId;
@@ -16,6 +15,7 @@ import esayhelper.DBHelper;
 import esayhelper.JSONHelper;
 import esayhelper.formHelper;
 import esayhelper.formHelper.formdef;
+import nlogger.nlogger;
 import esayhelper.jGrapeFW_Message;
 
 @SuppressWarnings("unchecked")
@@ -25,8 +25,7 @@ public class WebGroupModel {
 	private JSONObject _obj = new JSONObject();
 
 	static {
-		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(),
-				"wbGroup");
+		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(), "wbGroup");
 		_form = dbwebgroup.getChecker();
 	}
 
@@ -34,9 +33,10 @@ public class WebGroupModel {
 		_form.putRule("name", formdef.notNull);
 	}
 
-	private db bind(){
+	private db bind() {
 		return dbwebgroup.bind(String.valueOf(appsProxy.appid()));
 	}
+
 	/**
 	 * 新增站群
 	 * 
@@ -44,98 +44,152 @@ public class WebGroupModel {
 	 * @return 0：添加数据成功 1：存在非空字段 2：存在同名站群 其它异常
 	 */
 	public int add(JSONObject webgroupInfo) {
-		if (!_form.checkRuleEx(webgroupInfo)) {
-			return 1; // 必填字段没有填
+		int code = 99;
+		if (webgroupInfo != null) {
+			try {
+				if (!_form.checkRuleEx(webgroupInfo)) {
+					return 1; // 必填字段没有填
+				}
+				// 判断库中是否存在同名站群
+				String name = webgroupInfo.get("name").toString();
+				if (findByName(name) != null) {
+					return 2;
+				}
+				code = bind().data(webgroupInfo).insertOnce() != null ? 0 : 99;
+			} catch (Exception e) {
+				nlogger.logout(e);
+				code = 99;
+			}
 		}
-		// 判断库中是否存在同名站群
-		String name = webgroupInfo.get("name").toString();
-		if (findByName(name) != null) {
-			return 2;
-		}
-		return bind().data(webgroupInfo).insertOnce() != null ? 0 : 99;
+		return code;
 	}
 
 	public int delete(String id) {
-		return bind().eq("_id", new ObjectId(id)).delete() != null ? 0 : 99;
+		int code = 99;
+		try {
+			JSONObject object = bind().eq("_id", new ObjectId(id)).delete();
+			code = (object != null ? 0 : 99);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			code = 99;
+		}
+		return code;
 	}
 
 	public String search() {
-		JSONArray array = bind().limit(30).select();
+		JSONArray array = null;
+		try {
+			array = new JSONArray();
+			array = bind().limit(30).select();
+		} catch (Exception e) {
+			nlogger.logout(e);
+			array = null;
+		}
 		return resulmessage(array);
 	}
 
 	public String select(String webinfo) {
 		JSONObject object = JSONHelper.string2json(webinfo);
-		Set<Object> set = object.keySet();
-		for (Object object2 : set) {
-			if (object2.equals("_id")) {
-				bind().eq("_id", new ObjectId(
-						object.get(object2.toString()).toString()));
+		JSONArray array = null;
+		try {
+			array = new JSONArray();
+			for (Object object2 : object.keySet()) {
+				if (object2.equals("_id")) {
+					bind().eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+				}
+				bind().eq(object2.toString(), object.get(object2.toString()));
 			}
-			bind().eq(object2.toString(), object.get(object2.toString()));
+			array = bind().limit(30).select();
+		} catch (Exception e) {
+			nlogger.logout(e);
+			array = null;
 		}
-		return resulmessage(bind().limit(20).select());
+		return resulmessage(array);
 	}
 
 	public JSONObject find(String wbid) {
-		return bind().eq("_id", new ObjectId(wbid)).find();
+		JSONObject object = null;
+		try {
+			object = new JSONObject();
+			object = bind().eq("_id", new ObjectId(wbid)).find();
+		} catch (Exception e) {
+			nlogger.logout(e);
+			object = null;
+		}
+		return object;
 	}
 
 	public int update(String wbgid, String webinfo) {
-		// bind().protectfield(field);
+		int code = 99;
 		JSONObject _webinfo = JSONHelper.string2json(webinfo);
-		System.out.println(_webinfo);
-		// 非空字段判断
-		if (!_form.checkRule(_webinfo)) {
-			return 1;
-		}
-		if (_webinfo.containsKey("name")) {
-			String name = _webinfo.get("name").toString();
-			if (findByName(name) != null) {
-				return 2;
+		if (_webinfo != null) {
+			// 非空字段判断
+			if (!_form.checkRule(_webinfo)) {
+				return 1;
 			}
+			if (_webinfo.containsKey("name")) {
+				String name = _webinfo.get("name").toString();
+				if (findByName(name) != null) {
+					return 2;
+				}
+			}
+			JSONObject object = bind().eq("_id", new ObjectId(wbgid)).data(_webinfo).update();
+			code = (object != null ? 0 : 99);
 		}
-		JSONObject object = bind().eq("_id", new ObjectId(wbgid))
-				.data(_webinfo).update();
-		return object != null ? 0 : 99;
+		return code;
 	}
 
 	public int sortAndFatherid(JSONObject object) {
-		JSONObject _obj = new JSONObject();
-		if (object.containsKey("sort")) {
-			_obj.put("sort", object.get("sort").toString());
+		int code = 99;
+		if (object!=null) {
+			JSONObject _obj = new JSONObject();
+			if (object.containsKey("sort")) {
+				_obj.put("sort", object.get("sort").toString());
+			}
+			if (object.containsKey("fatherid")) {
+				_obj.put("fatherid", object.get("fatherid").toString());
+			}
+			 JSONObject objs = bind().eq("_id", new ObjectId(object.get("_id").toString())).data(_obj).update();
+			 code = (objs!= null ? 0 : 99);
 		}
-		if (object.containsKey("fatherid")) {
-			_obj.put("fatherid", object.get("fatherid").toString());
-		}
-		return bind().eq("_id", new ObjectId(object.get("_id").toString()))
-				.data(_obj).update() != null ? 0 : 99;
+		return code;
 	}
 
 	public String page(int idx, int pageSize) {
-		JSONArray array = bind().page(idx, pageSize);
-		JSONObject object = new JSONObject();
-		object.put("totalSize",
-				(int) Math.ceil((double) bind().count() / pageSize));
-		object.put("currentPage", idx);
-		object.put("pageSize", pageSize);
-		object.put("data", array);
+		JSONObject object = null;
+		try {
+			JSONArray array = bind().page(idx, pageSize);
+			object = new JSONObject();
+			object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+			object.put("currentPage", idx);
+			object.put("pageSize", pageSize);
+			object.put("data", array);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			object = null;
+		}
 		return resulmessage(object);
 	}
 
 	public String page(String webinfo, int idx, int pageSize) {
-		Set<Object> set = JSONHelper.string2json(webinfo).keySet();
-		for (Object object2 : set) {
-			bind().eq(object2.toString(),
-					JSONHelper.string2json(webinfo).get(object2.toString()));
+		JSONObject object = null;
+		JSONObject obj = JSONHelper.string2json(webinfo);
+		if (obj!=null) {
+			try {
+				for (Object object2 : obj.keySet()) {
+					bind().eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+				}
+				JSONArray array = bind().page(idx, pageSize);
+				object = new JSONObject();
+				object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+				object.put("currentPage", idx);
+				object.put("pageSize", pageSize);
+				object.put("data", array);
+			} catch (Exception e) {
+				nlogger.logout(e);
+				object = null;
+			}
 		}
-		JSONArray array = bind().page(idx, pageSize);
-		JSONObject object = new JSONObject();
-		object.put("totalSize",
-				(int) Math.ceil((double) bind().count() / pageSize));
-		object.put("currentPage", idx);
-		object.put("pageSize", pageSize);
-		object.put("data", array);
 		return resulmessage(object);
 	}
 
@@ -144,13 +198,14 @@ public class WebGroupModel {
 	}
 
 	public String findbyfatherid(String fatherid) {
-		JSONArray array = bind().eq("fatherid", fatherid).limit(30)
-				.select();
+		JSONArray array = bind().eq("fatherid", fatherid).limit(30).select();
 		JSONObject _obj;
 		String name = null;
-		for (Object object : array) {
-			_obj = (JSONObject) object;
-			name = _obj.get("name").toString();
+		if (array.size()!=0) {
+			for (Object object : array) {
+				_obj = (JSONObject) object;
+				name = _obj.get("name").toString();
+			}
 		}
 		return name;
 	}
@@ -163,11 +218,19 @@ public class WebGroupModel {
 	// }
 
 	public int delete(String[] arr) {
-		bind().or();
-		for (int i = 0; i < arr.length; i++) {
-			bind().eq("_id", arr[i]);
+		int code = 99;
+		try {
+			bind().or();
+			for (int i = 0, len = arr.length; i < len; i++) {
+				bind().eq("_id", new ObjectId(arr[i]));
+			}
+			long codes = bind().deleteAll();
+			code = (Integer.parseInt(String.valueOf(codes)) == arr.length ? 0 : 99);
+		} catch (Exception e) {
+			nlogger.logout(e);
+			code = 99;
 		}
-		return bind().deleteAll() == arr.length ? 0 : 99;
+		return code;
 	}
 
 	/**
@@ -178,14 +241,14 @@ public class WebGroupModel {
 	 * @return
 	 */
 	public JSONObject AddMap(HashMap<String, Object> map, JSONObject object) {
-		if (map.entrySet() != null) {
-			Iterator<Entry<String, Object>> iterator = map.entrySet()
-					.iterator();
-			while (iterator.hasNext()) {
-				Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator
-						.next();
-				if (!object.containsKey(entry.getKey())) {
-					object.put(entry.getKey(), entry.getValue());
+		if (object != null) {
+			if (map.entrySet() != null) {
+				Iterator<Entry<String, Object>> iterator = map.entrySet().iterator();
+				while (iterator.hasNext()) {
+					Map.Entry<String, Object> entry = (Map.Entry<String, Object>) iterator.next();
+					if (!object.containsKey(entry.getKey())) {
+						object.put(entry.getKey(), entry.getValue());
+					}
 				}
 			}
 		}
@@ -193,11 +256,17 @@ public class WebGroupModel {
 	}
 
 	private String resulmessage(JSONObject object) {
+		if (object==null) {
+			object = new JSONObject();
+		}
 		_obj.put("records", object);
 		return resultmessage(0, _obj.toString());
 	}
 
 	private String resulmessage(JSONArray array) {
+		if (array==null) {
+			array = new JSONArray();
+		}
 		_obj.put("records", array);
 		return resultmessage(0, _obj.toString());
 	}
