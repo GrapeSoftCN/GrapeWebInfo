@@ -20,11 +20,6 @@ public class WebInfo {
 	private WebModel web = new WebModel();
 	private HashMap<String, Object> map = new HashMap<>();
 
-	// private static int userPlv;
-	// static{
-	// userPlv = Integer.parseInt(execRequest._run("GrapeAuth/Auth/getUserPlv",
-	// null).toString());
-	// }
 	public WebInfo() {
 		map.put("ownid", 0);
 		map.put("engerid", 0);
@@ -51,11 +46,6 @@ public class WebInfo {
 	 *         6：网站描述字数超过限制
 	 */
 	public String WebInsert(String webInfo) {
-		// String code = execRequest._run("GrapeAuth/Auth/InsertPLV",
-		// null).toString();
-		// if (!"0".equals(code)) {
-		// return model.resultMessage(4, "");
-		// }
 		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
 		return web.resultMessage(web.addweb(object), "新增网站信息成功");
 	}
@@ -67,30 +57,15 @@ public class WebInfo {
 	 * @return
 	 */
 	public String WebDelete(String wbid) {
-		// int dplv =
-		// Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
-		// if (userPlv<dplv) {
-		// return model.resultMessage(6, "");
-		// }
 		return web.resultMessage(web.delete(wbid), "删除网站信息成功");
 	}
 
 	public String WebUpdate(String wbid, String WebInfo) {
-		// int dplv =
-		// Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
-		// if (userPlv<dplv) {
-		// return model.resultMessage(6, "");
-		// }
 		return web.resultMessage(web.update(wbid, JSONHelper.string2json(WebInfo)), "网站信息更新成功");
 	}
 
 	// 通过站群id更新网站信息
 	public String WebUpd(String wbid) {
-		// int dplv =
-		// Integer.parseInt(web.selectbyid(id).get("dPlv").toString());
-		// if (userPlv<dplv) {
-		// return model.resultMessage(6, "");
-		// }
 		JSONObject webinfo = new JSONObject();
 		webinfo.put("wbgid", 0);
 		return web.resultMessage(web.updatebywbgid(wbid, webinfo), "网站信息更新成功");

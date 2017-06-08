@@ -21,11 +21,6 @@ public class WebGroup {
 	private WebGroupModel webgroup = new WebGroupModel();
 	private HashMap<String, Object> defmap = new HashMap<>();
 
-	// private static int userPlv;
-	// static{
-	// userPlv = Integer.parseInt(execRequest._run("GrapeAuth/Auth/getUserPlv",
-	// null).toString());
-	// }
 	public WebGroup() {
 		defmap.put("ownid", 1);
 		defmap.put("sort", 0);
@@ -36,11 +31,6 @@ public class WebGroup {
 	}
 
 	public String WebGroupInsert(String webgroupInfo) {
-		// String code = execRequest._run("GrapeAuth/Auth/InsertPLV",
-		// null).toString();
-		// if (!"0".equals(code)) {
-		// return model.resultMessage(4, "");
-		// }
 		JSONObject object = webgroup.AddMap(defmap, JSONHelper.string2json(webgroupInfo));
 		return webgroup.resultmessage(webgroup.add(object), "站群新增成功");
 	}
@@ -85,10 +75,6 @@ public class WebGroup {
 	}
 
 	public String WebGroupUpdate(String wbgid, String webgroupInfo) {
-		// int uplv = Integer.parseInt(model.find(id).get("uPlv").toString());
-		// if (userPlv<uplv) {
-		// return model.resultMessage(6, "");
-		// }
 		return webgroup.resultmessage(webgroup.update(wbgid, webgroupInfo), "站群修改成功");
 	}
 
