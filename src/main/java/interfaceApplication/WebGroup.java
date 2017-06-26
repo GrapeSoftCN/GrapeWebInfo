@@ -6,7 +6,6 @@ import java.util.Properties;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 
 import apps.appsProxy;
 import esayhelper.JSONHelper;
@@ -88,7 +87,7 @@ public class WebGroup {
 
 	public String WebGroupUpBatch(String arraystring) {
 		int code = 0;
-		JSONArray array = (JSONArray) JSONValue.parse(arraystring);
+		JSONArray array = JSONHelper.string2array(arraystring);
 		for (int i = 0; i < array.size(); i++) {
 			if (code != 0) {
 				return webgroup.resultmessage(3, "");

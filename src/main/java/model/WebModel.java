@@ -1,26 +1,28 @@
 package model;
 
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang3.ObjectUtils.Null;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import apps.appsProxy;
-import authority.privilige;
+import check.formHelper;
+import check.formHelper.formdef;
+import database.DBHelper;
 import database.db;
-import esayhelper.DBHelper;
 import esayhelper.JSONHelper;
-import esayhelper.formHelper;
+import esayhelper.StringHelper;
 import esayhelper.jGrapeFW_Message;
-import esayhelper.formHelper.formdef;
 import nlogger.nlogger;
 import rpc.execRequest;
+import security.codec;
 import session.session;
 
 @SuppressWarnings("unchecked")
@@ -38,9 +40,9 @@ public class WebModel {
 	}
 
 	public WebModel() {
-		_form.putRule("host", formdef.notNull);
-		_form.putRule("logo", formdef.notNull);
-		_form.putRule("icp", formdef.notNull);
+		// _form.putRule("host", formdef.notNull);
+		// _form.putRule("logo", formdef.notNull);
+		// _form.putRule("icp", formdef.notNull);
 		_form.putRule("title", formdef.notNull);
 	}
 
@@ -54,46 +56,138 @@ public class WebModel {
 	 * @return 1:必填数据没有填 2：ICP备案号格式错误 3:ICP已存在 4: 公安网备案号格式错误 5：title已存在
 	 *         6：网站描述字数超过限制
 	 */
-	public int addweb(JSONObject webInfo) {
-		int code = 99;
+	/*
+	 * public String addweb(JSONObject webInfo) { JSONObject object = null;
+	 * String info = CheckParam(webInfo); JSONObject obj =
+	 * JSONHelper.string2json(info); if (obj == null) { object = findbyid(info);
+	 * try { if (object != null) { String fatherid =
+	 * object.get("fatherid").toString(); if (!("").equals(fatherid)) {
+	 * getColumns(fatherid, info); } } } catch (Exception e) {
+	 * nlogger.logout(e); object = null; } } return resultMessage(object); }
+	 */
+	public String addweb(JSONObject webInfo) {
+		JSONObject object = null;
+		JSONObject obj;
+		String info;
 		if (webInfo != null) {
-			try {
-				if (!_form.checkRuleEx(webInfo)) {
-					return 1;
-				}
-				String ICP = webInfo.get("icp").toString();
-				if (!check_icp(ICP)) {
-					return 2;
-				}
-				if (findWebByICP(ICP) != null) {
-					return 3;
-				}
-				if (webInfo.containsKey("policeid")) {
-					String policeid = webInfo.get("policeid").toString();
-					if (!policeid.equals("")) {
-						if (!Check.CheckIcpNum(policeid)) {
-							return 4;
-						}
-					}
-				}
-				String webname = webInfo.get("title").toString();
-				if (findWebByTitle(webname) != null) {
-					return 5;
-				}
-				if (webInfo.containsKey("desp")) {
-					if (!check_desp(webInfo.get("desp").toString())) {
-						return 6;
-					}
-				}
-				Object object = bind().data(webInfo).insertOnce();
-				code = (object != null ? 0 : 99);
-			} catch (Exception e) {
-				nlogger.logout(e);
-				code = 99;
+			info = CheckParam(webInfo);
+			obj = JSONHelper.string2json(info);
+			if (obj == null) {
+				object = findbyid(info); // 获取新增的网站信息
+				// 判断该网站是否为根网站,并填充栏目数据
+				IsRoot(info, object);
+				return resultMessage(object);
 			}
 		}
-		return code;
+		return resultMessage(99);
 	}
+	
+	private long AddColumn(String wbid,JSONArray array){
+		long rs = 0;
+		JSONObject json;
+		JSONObject temp;
+		JSONObject mapMap = new JSONObject();//栏目老id,栏目新id
+		String newCID;
+		String oldCID;
+		JSONObject cacheObj = new JSONObject();
+		for( Object obj : array){
+			json = (JSONObject)obj;//GroupInsert
+			oldCID = ((JSONObject)json.get("_id")).get("$oid").toString();
+//			json.put("sort", ((JSONObject)json.get("sort")).getString("$numberLong"));
+			json.put("wbid", wbid);
+			json.remove("_id");
+			temp = JSONObject.toJSON(appsProxy
+			.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/GroupInsert/" + columnInfo(json), null, null)
+			.toString());
+			if( temp != null && temp.getLong("errorcode") == 0 ){//插入新栏目成功
+				temp = ((JSONObject)((JSONObject)temp.get("message")).get("records"));
+				//((JSONObject)temp.get("_id")).get("$oid").toString();//获得新增栏目id
+				newCID = ((JSONObject)temp.get("_id")).getString("$oid");
+				mapMap.put(oldCID,newCID);//建立新老栏目ID映射表
+				cacheObj.put(newCID, temp);
+			}
+			else{
+				return 0;
+			}
+		}
+		String tempFatherID;
+		String fatherNewID;
+		JSONObject result;
+		boolean reTry = true;
+		long tryNo = 0;
+		long tryNax = 5;
+		for(Object obj : cacheObj.keySet()){
+			temp = (JSONObject)cacheObj.get(obj);
+			tempFatherID = temp.get("fatherid").toString();
+			if (tempFatherID.contains("$numberLong")) {
+				tempFatherID = JSONHelper.string2json(tempFatherID).getString("$numberLong");
+			}
+			if( !tempFatherID.equals("0") ){
+				fatherNewID = mapMap.get(tempFatherID).toString();
+				while(reTry && tryNo < tryNax){
+					reTry = false;
+					result = JSONObject.toJSON(appsProxy
+							.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/GroupEdit/" + obj.toString() + "/" + (new JSONObject("fatherid",fatherNewID)).toJSONString(), null,null)
+							.toString());
+					if( result != null && result.getLong("errorcode") == 99 ){
+						reTry = true;
+						tryNo++;
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							;
+						}
+					}
+					else{
+						rs++;
+					}
+				}
+				reTry = true;
+			}
+		}
+		return rs;
+	}
+	
+	private String IsRoot(String wbid, JSONObject object) {
+		long l = 0;
+		try {
+			String fid = object.getString("fatherid");
+			
+			if (!fid.equals("0")) {
+				//获取上一级栏目
+				JSONObject obj = findbyid(fid);
+				if (obj!=null) {
+					String prevfid = obj.getString("fatherid");
+					if (!prevfid.equals("0")) {
+						// 获取该fid下所有栏目
+						String columns = appsProxy
+								.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/getPrevColumn/" + fid, null, null)
+								.toString();
+						l = AddColumn(wbid, JSONHelper.string2array(columns));
+					}
+				}
+			}
+			else{
+				l = 1;
+			}
+		} catch (Exception e) {
+			nlogger.logout(e);
+			l = 0;
+		}
+		return String.valueOf(l) ;
+	}
+
+	private String columnInfo(JSONObject object) {
+		String value = "";
+		for (Object object2 : object.keySet()) {
+			value = object.get(object2.toString()).toString();
+			if (value.contains("$numberLong")) {
+				object.put(object2.toString(), object.getInt(object2));
+			}
+		}
+		return object.toString();
+	}
+
 
 	public int delete(String webid) {
 		int code = 99;
@@ -177,7 +271,7 @@ public class WebModel {
 		JSONObject object = null;
 		try {
 			object = new JSONObject();
-			object = bind().eq("_id", new ObjectId(wbid)).field("ownid").find();
+			object = bind().eq("_id", new ObjectId(wbid)).find();
 		} catch (Exception e) {
 			nlogger.logout(e);
 			object = null;
@@ -288,7 +382,7 @@ public class WebModel {
 		if (object != null) {
 			try {
 				obj = (JSONObject) session.getSession(object.toString());
-				if (obj!=null) {
+				if (obj != null) {
 					obj.put("currentWeb", wbid);
 					sid = session.setget(session.get(object.toString()), obj.toString());
 				}
@@ -393,12 +487,112 @@ public class WebModel {
 		return object;
 	}
 
+	private String getAppIp(String key) {
+		String value = "";
+		try {
+			Properties pro = new Properties();
+			pro.load(new FileInputStream("URLConfig.properties"));
+			value = pro.getProperty(key);
+		} catch (Exception e) {
+			value = "";
+		}
+		return value;
+	}
+
+	// 获取应用url[内网url或者外网url]，0表示内网，1表示外网
+	public String getHost(int signal) {
+		String host = null;
+		try {
+			if (signal == 0 || signal == 1) {
+				host = getAppIp("host").split("/")[signal];
+			}
+		} catch (Exception e) {
+			nlogger.logout(e);
+			host = null;
+		}
+		return host;
+	}
+
+	private String CheckParam(JSONObject webInfo) {
+		String info = "";
+		if (webInfo != null) {
+			try {
+				if (!_form.checkRuleEx(webInfo)) {
+					return resultMessage(1);
+				}
+				if (webInfo.containsKey("icp")) {
+					String ICP = webInfo.get("icp").toString();
+					if (!ICP.equals("")) {
+						if (!check_icp(ICP)) {
+							return resultMessage(2);
+						}
+						if (findWebByICP(ICP) != null) {
+							return resultMessage(3);
+						}
+					}
+				}
+				if (webInfo.containsKey("policeid")) {
+					String policeid = webInfo.get("policeid").toString();
+					if (!policeid.equals("")) {
+						if (!Check.CheckIcpNum(policeid)) {
+							return resultMessage(4);
+						}
+					}
+				}
+				String webname = webInfo.get("title").toString();
+				if (findWebByTitle(webname) != null) {
+					return resultMessage(5);
+				}
+				if (webInfo.containsKey("desp")) {
+					if (!check_desp(webInfo.get("desp").toString())) {
+						return resultMessage(6);
+					}
+				}
+				info = bind().data(webInfo).insertOnce().toString();
+			} catch (Exception e) {
+				nlogger.logout(e);
+				return resultMessage(99);
+			}
+		}
+		return info;
+	}
+
+
+	/**
+	 * 以某网站为根节点，获得其自身和下级全部网站id,输出成 网站id,网站id,网站id...
+	 * 
+	 * @project GrapeSuggest
+	 * @package interfaceApplication
+	 * @file Suggest.java
+	 * 
+	 * @param root
+	 * @return
+	 * 
+	 */
+	public String getWebID4All(String root) {
+		db db = bind();
+		JSONArray data = db.eq("fatherid", root).select();
+		JSONObject object;
+		String tmpWbid;
+		String rsString = root;
+		for (Object obj : data) {
+			object = (JSONObject) obj;
+			tmpWbid = ((JSONObject) object.get("_id")).get("$oid").toString();
+			rsString = rsString + "," + getWebID4All(tmpWbid);
+		}
+		return StringHelper.fixString(rsString);
+	}
+
 	private String resultMessage(JSONObject object) {
 		if (object == null) {
 			object = new JSONObject();
 		}
 		_obj.put("records", object);
 		return resultMessage(0, _obj.toString());
+	}
+
+	public String resultMessage(int num) {
+		return resultMessage(num, "");
 	}
 
 	private String resultMessage(JSONArray array) {
@@ -432,6 +626,12 @@ public class WebModel {
 			break;
 		case 6:
 			message = "字数超过限制";
+			break;
+		case 7:
+			message = "新增网站成功，拉取栏目信息失败";
+			break;
+		case 8:
+			message = "该网站所属根网站无固定栏目";
 			break;
 		default:
 			message = "其他异常";

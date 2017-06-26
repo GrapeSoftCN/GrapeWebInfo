@@ -2,14 +2,14 @@ package interfaceApplication;
 
 import java.util.HashMap;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import apps.appsProxy;
 import authority.privilige;
 import esayhelper.JSONHelper;
 import model.WebModel;
 import rpc.execRequest;
-import session.session;
+import security.codec;
 
 /**
  * 网站信息 备注：涉及到的id都是数据表中的_id
@@ -21,9 +21,9 @@ public class WebInfo {
 	private HashMap<String, Object> map = new HashMap<>();
 
 	public WebInfo() {
-		map.put("ownid", 0);
+		map.put("ownid", appsProxy.appid());
 		map.put("engerid", 0);
-		map.put("gov", "12");
+		map.put("gov", "0");
 		map.put("desp", "");
 		map.put("policeid", "");
 		map.put("wbgid", 0);
@@ -33,9 +33,13 @@ public class WebInfo {
 		map.put("sort", 0);
 		map.put("authid", 0);
 		map.put("taskid", 0);
-		map.put("rPlv", 1000); // 读取 权限值
-		map.put("uPlv", 2000); // 修改 权限值
-		map.put("dPlv", 3000); // 删除 权限值
+		map.put("fatherid", ""); //上级网站id
+		map.put("r", 1000); // 读取 权限值
+		map.put("u", 2000); // 修改 权限值
+		map.put("d", 3000); // 删除 权限值
+		map.put("host", "");
+		map.put("logo", "");
+		map.put("icp", "");
 	}
 
 	/**
@@ -47,7 +51,7 @@ public class WebInfo {
 	 */
 	public String WebInsert(String webInfo) {
 		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
-		return web.resultMessage(web.addweb(object), "新增网站信息成功");
+		return web.addweb(object);
 	}
 
 	/**
@@ -109,9 +113,15 @@ public class WebInfo {
 
 	// 设置网站管理员
 	public String setManager(String wbid,String userid) {
+		int roleplv = 0;
 		String info = web.resultMessage(99,"");
-		privilige pril = new privilige((String) execRequest.getChannelValue("GrapeSID"));
-		int roleplv = pril.getRolePV();
+		String sid = (String) execRequest.getChannelValue("GrapeSID");
+		if (sid!=null) {
+			sid = codec.DecodeHtmlTag(sid);
+			sid = codec.decodebase64(sid);
+			privilige pril = new privilige(sid);
+			roleplv = pril.getRolePV();
+		}
 		if (roleplv > 10000) {
 			//设置管理员
 			info = web.setManage(wbid, userid);
@@ -122,5 +132,9 @@ public class WebInfo {
 	//切换网站
 	public String SwitchWeb(String wbid) {
 		return web.WebSwitch(wbid);
+	}
+	//获得当前网站节点树
+	public String getWebTree(String root){
+		return web.getWebID4All(root);
 	}
 }
