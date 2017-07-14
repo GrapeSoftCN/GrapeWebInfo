@@ -6,10 +6,9 @@ import org.json.simple.JSONObject;
 
 import apps.appsProxy;
 import authority.privilige;
-import esayhelper.JSONHelper;
+import json.JSONHelper;
 import model.WebModel;
 import rpc.execRequest;
-import security.codec;
 
 /**
  * 网站信息 备注：涉及到的id都是数据表中的_id
@@ -33,7 +32,7 @@ public class WebInfo {
 		map.put("sort", 0);
 		map.put("authid", 0);
 		map.put("taskid", 0);
-		map.put("fatherid", ""); //上级网站id
+		map.put("fatherid", ""); // 上级网站id
 		map.put("r", 1000); // 读取 权限值
 		map.put("u", 2000); // 修改 权限值
 		map.put("d", 3000); // 删除 权限值
@@ -87,6 +86,11 @@ public class WebInfo {
 		return web.page(webinfo, idx, pageSize);
 	}
 
+	//条件分页，包含全字段
+	public String WebPageBys(int idx, int pageSize, String webinfo) {
+		return web.pages(webinfo, idx, pageSize);
+	}
+
 	public String WebSort(String wbid, int num) {
 		return web.resultMessage(web.sort(wbid, num), "排序值设置成功");
 	}
@@ -112,29 +116,28 @@ public class WebInfo {
 	}
 
 	// 设置网站管理员
-	public String setManager(String wbid,String userid) {
+	public String setManager(String wbid, String userid) {
 		int roleplv = 0;
-		String info = web.resultMessage(99,"");
+		String info = web.resultMessage(99, "");
 		String sid = (String) execRequest.getChannelValue("GrapeSID");
-		if (sid!=null) {
-			sid = codec.DecodeHtmlTag(sid);
-			sid = codec.decodebase64(sid);
+		if (sid != null) {
 			privilige pril = new privilige(sid);
-			roleplv = pril.getRolePV();
+			roleplv = pril.getRolePV(appsProxy.appidString());
 		}
 		if (roleplv > 10000) {
-			//设置管理员
+			// 设置管理员
 			info = web.setManage(wbid, userid);
 		}
 		return info;
 	}
 
-	//切换网站
+	// 切换网站
 	public String SwitchWeb(String wbid) {
 		return web.WebSwitch(wbid);
 	}
-	//获得当前网站节点树
-	public String getWebTree(String root){
+
+	// 获得当前网站节点树
+	public String getWebTree(String root) {
 		return web.getWebID4All(root);
 	}
 }

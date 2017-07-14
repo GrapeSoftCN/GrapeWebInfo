@@ -12,18 +12,19 @@ import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import JGrapeSystem.jGrapeFW_Message;
 import apps.appsProxy;
 import check.formHelper;
 import check.formHelper.formdef;
 import database.DBHelper;
 import database.db;
-import esayhelper.JSONHelper;
-import esayhelper.StringHelper;
-import esayhelper.jGrapeFW_Message;
+import interfaceModel.commonModel.dbDef;
+import json.JSONHelper;
 import nlogger.nlogger;
 import rpc.execRequest;
 import security.codec;
 import session.session;
+import string.StringHelper;
 
 @SuppressWarnings("unchecked")
 public class WebModel {
@@ -81,32 +82,34 @@ public class WebModel {
 		}
 		return resultMessage(99);
 	}
-	
-	private long AddColumn(String wbid,JSONArray array){
+
+	private long AddColumn(String wbid, JSONArray array) {
 		long rs = 0;
 		JSONObject json;
 		JSONObject temp;
-		JSONObject mapMap = new JSONObject();//栏目老id,栏目新id
+		JSONObject mapMap = new JSONObject();// 栏目老id,栏目新id
 		String newCID;
 		String oldCID;
 		JSONObject cacheObj = new JSONObject();
-		for( Object obj : array){
-			json = (JSONObject)obj;//GroupInsert
-			oldCID = ((JSONObject)json.get("_id")).get("$oid").toString();
-//			json.put("sort", ((JSONObject)json.get("sort")).getString("$numberLong"));
+		for (Object obj : array) {
+			json = (JSONObject) obj;// GroupInsert
+			oldCID = ((JSONObject) json.get("_id")).get("$oid").toString();
+			// json.put("sort",
+			// ((JSONObject)json.get("sort")).getString("$numberLong"));
 			json.put("wbid", wbid);
 			json.remove("_id");
-			temp = JSONObject.toJSON(appsProxy
-			.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/GroupInsert/" + columnInfo(json), null, null)
-			.toString());
-			if( temp != null && temp.getLong("errorcode") == 0 ){//插入新栏目成功
-				temp = ((JSONObject)((JSONObject)temp.get("message")).get("records"));
-				//((JSONObject)temp.get("_id")).get("$oid").toString();//获得新增栏目id
-				newCID = ((JSONObject)temp.get("_id")).getString("$oid");
-				mapMap.put(oldCID,newCID);//建立新老栏目ID映射表
+			temp = JSONObject
+					.toJSON(appsProxy
+							.proxyCall(getHost(0),
+									appsProxy.appid() + "/15/ContentGroup/GroupInsert/" + columnInfo(json), null, null)
+							.toString());
+			if (temp != null && temp.getLong("errorcode") == 0) {// 插入新栏目成功
+				temp = ((JSONObject) ((JSONObject) temp.get("message")).get("records"));
+				// ((JSONObject)temp.get("_id")).get("$oid").toString();//获得新增栏目id
+				newCID = ((JSONObject) temp.get("_id")).getString("$oid");
+				mapMap.put(oldCID, newCID);// 建立新老栏目ID映射表
 				cacheObj.put(newCID, temp);
-			}
-			else{
+			} else {
 				return 0;
 			}
 		}
@@ -116,20 +119,23 @@ public class WebModel {
 		boolean reTry = true;
 		long tryNo = 0;
 		long tryNax = 5;
-		for(Object obj : cacheObj.keySet()){
-			temp = (JSONObject)cacheObj.get(obj);
+		for (Object obj : cacheObj.keySet()) {
+			temp = (JSONObject) cacheObj.get(obj);
 			tempFatherID = temp.get("fatherid").toString();
 			if (tempFatherID.contains("$numberLong")) {
 				tempFatherID = JSONHelper.string2json(tempFatherID).getString("$numberLong");
 			}
-			if( !tempFatherID.equals("0") ){
+			if (!tempFatherID.equals("0")) {
 				fatherNewID = mapMap.get(tempFatherID).toString();
-				while(reTry && tryNo < tryNax){
+				while (reTry && tryNo < tryNax) {
 					reTry = false;
 					result = JSONObject.toJSON(appsProxy
-							.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/GroupEdit/" + obj.toString() + "/" + (new JSONObject("fatherid",fatherNewID)).toJSONString(), null,null)
+							.proxyCall(getHost(0),
+									appsProxy.appid() + "/15/ContentGroup/GroupEdit/" + obj.toString() + "/"
+											+ (new JSONObject("fatherid", fatherNewID)).toJSONString(),
+									null, null)
 							.toString());
-					if( result != null && result.getLong("errorcode") == 99 ){
+					if (result != null && result.getLong("errorcode") == 99) {
 						reTry = true;
 						tryNo++;
 						try {
@@ -137,8 +143,7 @@ public class WebModel {
 						} catch (InterruptedException e) {
 							;
 						}
-					}
-					else{
+					} else {
 						rs++;
 					}
 				}
@@ -147,34 +152,32 @@ public class WebModel {
 		}
 		return rs;
 	}
-	
+
 	private String IsRoot(String wbid, JSONObject object) {
 		long l = 0;
 		try {
 			String fid = object.getString("fatherid");
-			
+
 			if (!fid.equals("0")) {
-				//获取上一级栏目
+				// 获取上一级栏目
 				JSONObject obj = findbyid(fid);
-				if (obj!=null) {
+				if (obj != null) {
 					String prevfid = obj.getString("fatherid");
 					if (!prevfid.equals("0")) {
 						// 获取该fid下所有栏目
-						String columns = appsProxy
-								.proxyCall(getHost(0), appsProxy.appid() + "/15/ContentGroup/getPrevColumn/" + fid, null, null)
-								.toString();
+						String columns = appsProxy.proxyCall(getHost(0),
+								appsProxy.appid() + "/15/ContentGroup/getPrevColumn/" + fid, null, null).toString();
 						l = AddColumn(wbid, JSONHelper.string2array(columns));
 					}
 				}
-			}
-			else{
+			} else {
 				l = 1;
 			}
 		} catch (Exception e) {
 			nlogger.logout(e);
 			l = 0;
 		}
-		return String.valueOf(l) ;
+		return String.valueOf(l);
 	}
 
 	private String columnInfo(JSONObject object) {
@@ -187,7 +190,6 @@ public class WebModel {
 		}
 		return object.toString();
 	}
-
 
 	public int delete(String webid) {
 		int code = 99;
@@ -307,6 +309,31 @@ public class WebModel {
 	}
 
 	public String page(String webinfo, int idx, int pageSize) {
+		db db = bind();
+		JSONObject object = null;
+		JSONObject obj = JSONHelper.string2json(webinfo);
+		if (obj != null) {
+			try {
+				for (Object object2 : obj.keySet()) {
+					db.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+				}
+				JSONArray array = db.dirty().field("_id,title,wbgid,fatherid").page(idx, pageSize);
+				object = new JSONObject();
+				object.put("totalSize", (int) Math.ceil((double) db.count() / pageSize));
+				object.put("currentPage", idx);
+				object.put("pageSize", pageSize);
+				object.put("data", array);
+			} catch (Exception e) {
+				nlogger.logout(e);
+				object = null;
+			}finally {
+				db.clear();
+			}
+		}
+		return resultMessage(object);
+	}
+
+	public String pages(String webinfo, int idx, int pageSize) {
 		JSONObject object = null;
 		JSONObject obj = JSONHelper.string2json(webinfo);
 		if (obj != null) {
@@ -556,7 +583,6 @@ public class WebModel {
 		}
 		return info;
 	}
-
 
 	/**
 	 * 以某网站为根节点，获得其自身和下级全部网站id,输出成 网站id,网站id,网站id...
