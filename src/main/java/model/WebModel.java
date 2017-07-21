@@ -4,9 +4,9 @@ import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.Map.Entry;
 
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -18,29 +18,24 @@ import check.formHelper;
 import check.formHelper.formdef;
 import database.DBHelper;
 import database.db;
-import interfaceModel.commonModel.dbDef;
 import json.JSONHelper;
 import nlogger.nlogger;
 import rpc.execRequest;
-import security.codec;
 import session.session;
 import string.StringHelper;
 
 @SuppressWarnings("unchecked")
 public class WebModel {
-	private static DBHelper dbweb;
-	private static formHelper _form;
+	private DBHelper dbweb;
+	private formHelper _form;
 	private JSONObject _obj = new JSONObject();
 	// private privilige privil = new
 	// privilige(execRequest.getChannelValue("GrapeSID").toString());
 
-	static {
-		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(), "websiteList", "_id");
-		// dbweb = new DBHelper("mongodb", "websiteList", "_id");
-		_form = dbweb.getChecker();
-	}
 
 	public WebModel() {
+		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(), "websiteList", "_id");
+		_form = dbweb.getChecker();
 		// _form.putRule("host", formdef.notNull);
 		// _form.putRule("logo", formdef.notNull);
 		// _form.putRule("icp", formdef.notNull);
@@ -487,10 +482,10 @@ public class WebModel {
 	 * 
 	 * @return
 	 */
-	public static String getID() {
-		String str = UUID.randomUUID().toString().trim();
-		return str.replace("-", "");
-	}
+//	public static String getID() {
+//		String str = UUID.randomUUID().toString().trim();
+//		return str.replace("-", "");
+//	}
 
 	/**
 	 * 将map添加至JSONObject中

@@ -20,16 +20,13 @@ import nlogger.nlogger;
 
 @SuppressWarnings("unchecked")
 public class WebGroupModel {
-	private static DBHelper dbwebgroup;
-	private static formHelper _form;
+	private DBHelper dbwebgroup;
+	private formHelper _form;
 	private JSONObject _obj = new JSONObject();
 
-	static {
+	public WebGroupModel() {
 		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(), "wbGroup");
 		_form = dbwebgroup.getChecker();
-	}
-
-	public WebGroupModel() {
 		_form.putRule("name", formdef.notNull);
 	}
 
