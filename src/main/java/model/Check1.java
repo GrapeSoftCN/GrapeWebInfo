@@ -7,11 +7,11 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
 
-public class Check {
-  private static final String LOCAL_LIST_PATH = "local.xml";  
-  private static Document document; 
-  private static String last;
-	public static boolean check_icp(String icp) {
+public class Check1 {
+  private final String LOCAL_LIST_PATH = "local.xml";  
+  private Document document; 
+  private String last;
+	public boolean check_icp(String icp) {
 		int len = icp.length();
 		if (len<14) {
 			return false;
@@ -35,7 +35,7 @@ public class Check {
 	 * @param abbr
 	 * @return
 	 */
-	protected static boolean abbreviation(String abbr) {
+	protected boolean abbreviation(String abbr) {
     try {  
         document = new SAXReader().read(LOCAL_LIST_PATH);
         String[] abbrs = document.getStringValue().trim().split("\n");
@@ -49,7 +49,7 @@ public class Check {
     }
 		return false; 
 	}
-	protected static boolean CheckIcpNum(String info) {
+	protected boolean CheckIcpNum(String info) {
 		Pattern r = Pattern.compile("[0-9]\\d*");
 		Matcher m = r.matcher(info);
 		return m.matches();

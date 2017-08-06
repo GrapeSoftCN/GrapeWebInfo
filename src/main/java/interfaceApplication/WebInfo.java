@@ -2,10 +2,12 @@ package interfaceApplication;
 
 import java.util.HashMap;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import apps.appsProxy;
 import authority.privilige;
+import database.db;
 import json.JSONHelper;
 import model.WebModel;
 import rpc.execRequest;
@@ -32,13 +34,15 @@ public class WebInfo {
 		map.put("sort", 0);
 		map.put("authid", 0);
 		map.put("taskid", 0);
-		map.put("fatherid", ""); // 上级网站id
+		map.put("fatherid", "0"); // 上级网站id
 		map.put("r", 1000); // 读取 权限值
 		map.put("u", 2000); // 修改 权限值
 		map.put("d", 3000); // 删除 权限值
 		map.put("host", "");
 		map.put("logo", "");
 		map.put("icp", "");
+		map.put("allno", 0); // 网站总访问量统计
+		map.put("thumbnail", ""); // 文章默认缩略图
 	}
 
 	/**
@@ -78,17 +82,24 @@ public class WebInfo {
 		return web.select(wbinfo);
 	}
 
+	// 显示_id,title,wbgid,fatherid
 	public String WebPage(int idx, int pageSize) {
-		return web.page(idx, pageSize);
+		return web.page(idx, pageSize, null);
 	}
 
+	// 显示_id,title,wbgid,fatherid
 	public String WebPageBy(int idx, int pageSize, String webinfo) {
-		return web.page(webinfo, idx, pageSize);
+		return web.page(idx, pageSize, webinfo);
 	}
 
-	//条件分页，包含全字段
-	public String WebPageBys(int idx, int pageSize, String webinfo) {
-		return web.pages(webinfo, idx, pageSize);
+	// 显示所有字段
+	public String WebPageBack(int idx, int pageSize) {
+		return web.pages(idx, pageSize, null);
+	}
+
+	// 显示所有字段
+	public String WebPageByBack(int idx, int pageSize, String webinfo) {
+		return web.pages(idx, pageSize, webinfo);
 	}
 
 	public String WebSort(String wbid, int num) {
@@ -136,8 +147,81 @@ public class WebInfo {
 		return web.WebSwitch(wbid);
 	}
 
-	// 获得当前网站节点树
+	// 获得当前网站节点树，包含自身及下级全部网站
 	public String getWebTree(String root) {
 		return web.getWebID4All(root);
+	}
+
+	//批量获取网站信息
+	public String getAllWeb(int idx,int pageSize,String root) {
+		long total =0,totalSize=0;
+		String wbid = getWebTree(root);
+		String[] wbids = wbid.split(",");
+		db db = getdb();
+		for (String value : wbids) {
+			db.eq("_id", value);
+		}
+		JSONArray array = db.dirty().page(idx, pageSize);
+		totalSize = db.dirty().pageMax(pageSize);
+		total = db.dirty().count();
+		return web.PageShow(array, totalSize, idx, pageSize, total);
+	}
+	// 获取网站默认缩略图
+	public String getImage(String wbid) {
+		String url = "http://" + web.getFile(1);
+		String image = "";
+		db db = getdb();
+		JSONObject obj = db.eq("_id", wbid).field("thumbnail").limit(1).find();
+		if (obj != null && obj.size() != 0 && obj.containsKey("thumbnail")) {
+			image = obj.getString("thumbnail");
+			image = url + image;
+		}
+		obj.put("thumbnail", image);
+		return obj.toJSONString();
+	}
+
+	/**
+	 * 网站访问量增加，即allno+1
+	 * 
+	 * @project GrapeWebInfo
+	 * @package interfaceApplication
+	 * @file WebInfo.java
+	 * 
+	 * @param condString
+	 * @return
+	 *
+	 */
+	public String viewCount(String condString) {
+		int code = 99;
+		String data = "{\"allno\":0}";
+		JSONArray condArray = JSONArray.toJSONArray(condString);
+		if (condArray != null && condArray.size() != 0) {
+			int count = getCount(condArray);
+			data = "{\"allno\":" + count + "}";
+			db db = getdb();
+			code = db.where(condArray).data(data).update() != null ? 0 : 99;
+		}
+		return web.resultMessage(code, "新增访问量");
+	}
+
+	// 当前网站的统计量 +1
+	private int getCount(JSONArray condArray) {
+		int count = 0;
+		db db = getdb();
+		JSONObject object = db.where(condArray).field("allno").limit(1).find();
+		if (object != null && object.size() != 0) {
+			if (object.containsKey("allno")) {
+				String counts = object.getString("allno");
+				if (counts.contains("$numberLong")) {
+					counts = JSONObject.toJSON(counts).getString("$numberLong");
+				}
+				count = Integer.parseInt(counts);
+			}
+		}
+		return count + 1;
+	}
+
+	private db getdb() {
+		return web.bind();
 	}
 }

@@ -39,13 +39,13 @@ public class WebGroup {
 		try {
 			// 判断该站群下，是否存在网站
 			String message = appsProxy
-					.proxyCall(callhost(), appsProxy.appid() + "/17/WebInfo/WebFindByWbId/s:" + id, null, "").toString();
+					.proxyCall("/GrapeWebInfo/WebInfo/WebFindByWbId/s:" + id, null, "").toString();
 			if (JSONHelper.string2json(message)!=null) {
 				String records = JSONHelper.string2json(message).get("message").toString();
 				JSONArray array = JSONHelper.string2array(JSONHelper.string2json(records).get("records").toString());
 				if (array.size() != 0) {
 					message = appsProxy
-							.proxyCall(callhost(), appsProxy.appid() + "/17/WebInfo/WebUpd/s:" + id, null,"").toString();
+							.proxyCall("/GrapeWebInfo/WebInfo/WebUpd/s:" + id, null,"").toString();
 					if (JSONHelper.string2json(message)!=null) {
 						long num = (long) JSONHelper.string2json(message).get("errorcode");
 						code = Integer.parseInt(String.valueOf(num));
