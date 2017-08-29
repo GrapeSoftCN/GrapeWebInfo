@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.mail.Session;
+
 import java.util.Properties;
 
 import org.bson.types.ObjectId;
@@ -34,11 +37,6 @@ public class WebModel {
 
 	public WebModel() {
 		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(), "websiteList", "_id");
-		_form = dbweb.getChecker();
-		// _form.putRule("host", formdef.notNull);
-		// _form.putRule("logo", formdef.notNull);
-		// _form.putRule("icp", formdef.notNull);
-		_form.putRule("title", formdef.notNull);
 	}
 
 	public db bind() {
@@ -81,10 +79,8 @@ public class WebModel {
 			oldCID = ((JSONObject) json.get("_id")).get("$oid").toString();
 			json.put("wbid", wbid);
 			json.remove("_id");
-			temp = JSONObject
-					.toJSON(appsProxy
-							.proxyCall("/GrapeContent/ContentGroup/GroupInsert/" + columnInfo(json), null, null)
-							.toString());
+			temp = JSONObject.toJSON(appsProxy
+					.proxyCall("/GrapeContent/ContentGroup/GroupInsert/" + columnInfo(json), null, null).toString());
 			if (temp != null && temp.getLong("errorcode") == 0) {// 插入新栏目成功
 				temp = ((JSONObject) ((JSONObject) temp.get("message")).get("records"));
 				newCID = ((JSONObject) temp.get("_id")).getString("$oid");
@@ -110,11 +106,13 @@ public class WebModel {
 				fatherNewID = mapMap.get(tempFatherID).toString();
 				while (reTry && tryNo < tryNax) {
 					reTry = false;
-					result = JSONObject.toJSON(appsProxy
-							.proxyCall("/GrapeContent/ContentGroup/GroupEdit/" + obj.toString() + "/"
-											+ (new JSONObject("fatherid", fatherNewID)).toJSONString(),
-									null, null)
-							.toString());
+					result = JSONObject
+							.toJSON(appsProxy
+									.proxyCall(
+											"/GrapeContent/ContentGroup/GroupEdit/" + obj.toString() + "/"
+													+ (new JSONObject("fatherid", fatherNewID)).toJSONString(),
+											null, null)
+									.toString());
 					if (result != null && result.getLong("errorcode") == 99) {
 						reTry = true;
 						tryNo++;
@@ -145,7 +143,12 @@ public class WebModel {
 					String prevfid = obj.getString("fatherid");
 					if (!prevfid.equals("0")) {
 						// 获取该fid下所有栏目
-						String columns = appsProxy.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/" + fid).toString();
+						// String columns =
+						// appsProxy.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/"
+						// + fid)
+						// .toString();
+						String columns = appsProxy
+								.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/" + fid, null, null).toString();
 						l = AddColumn(wbid, JSONHelper.string2array(columns));
 					}
 				}
@@ -276,16 +279,15 @@ public class WebModel {
 	}
 
 	public String selectbyid(String wbid) {
-		if (wbid.contains(",")) {
+		JSONArray array = null;
+		if (wbid != null && !wbid.equals("")) {
 			bind().or();
 			String[] wbids = wbid.split(",");
 			for (int i = 0, len = wbids.length; i < len; i++) {
-				bind().eq("_id", new ObjectId(wbids[i]));
+				bind().eq("_id", wbids[i]);
 			}
-		} else {
-			bind().eq("_id", new ObjectId(wbid));
+			array = bind().limit(10).select();
 		}
-		JSONArray array = bind().limit(10).select();
 		return resultMessage(array);
 	}
 
@@ -434,10 +436,11 @@ public class WebModel {
 		Object object = (String) execRequest.getChannelValue("sid");
 		if (object != null) {
 			try {
-				obj = (JSONObject) session.getSession(object.toString());
+				obj = (JSONObject) session.getDatas();
 				if (obj != null) {
 					obj.put("currentWeb", wbid);
-					sid = session.setget(session.get(object.toString()), obj.toString());
+					session.setDatas(obj);
+//					sid = session.setget(session.get(object.toString()), obj.toString());
 				}
 			} catch (Exception e) {
 				nlogger.logout(e);
@@ -573,9 +576,6 @@ public class WebModel {
 		String info = "";
 		if (webInfo != null) {
 			try {
-				if (!_form.checkRuleEx(webInfo)) {
-					return resultMessage(1);
-				}
 				if (webInfo.containsKey("icp")) {
 					String ICP = webInfo.get("icp").toString();
 					if (!ICP.equals("")) {
@@ -645,7 +645,33 @@ public class WebModel {
 		}
 		return StringHelper.fixString(rsString, ',');
 	}
-
+	/**
+	 * 以某网站为子节点，获得上级全部网站id,输出成 网站id,网站id,网站id...
+	 * 
+	 * @project GrapeWebInfo
+	 * @package model
+	 * @file WebModel.java
+	 * 
+	 * @param root
+	 * @return
+	 *
+	 */
+	public String getFID(String root) {
+		db db = bind();
+		String rsString = "";
+		while (!root.equals("") && !root.equals("0")) {
+			JSONArray data = db.eq("_id", root).select();
+			JSONObject object;
+			for (Object obj : data) {
+				object = (JSONObject) obj;
+				root = object.getString("fatherid");
+				if (!root.equals("") && !root.equals("0")) {
+					rsString += root + ",";
+				}
+			}
+		}
+		return StringHelper.fixString(rsString, ',');
+	}
 	/**
 	 * 分页显示数据输出格式
 	 * 
@@ -676,7 +702,7 @@ public class WebModel {
 		return resultMessage(object);
 	}
 
-	private String resultMessage(JSONObject object) {
+	public String resultMessage(JSONObject object) {
 		if (object == null) {
 			object = new JSONObject();
 		}

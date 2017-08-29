@@ -6,11 +6,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import apps.appsProxy;
-import authority.privilige;
 import database.db;
 import json.JSONHelper;
 import model.WebModel;
 import rpc.execRequest;
+import session.session;
 
 /**
  * 网站信息 备注：涉及到的id都是数据表中的_id
@@ -20,9 +20,21 @@ import rpc.execRequest;
 public class WebInfo {
 	private WebModel web = new WebModel();
 	private HashMap<String, Object> map = new HashMap<>();
+	private session session = new session();
+	private String sid = null;
+	private JSONObject userInfo = new JSONObject();
+	private String currentUserId = "";
 
 	public WebInfo() {
-		map.put("ownid", appsProxy.appid());
+		sid = (String) execRequest.getChannelValue("sid");
+		if (sid != null) {
+			userInfo = session.getDatas();
+			if (userInfo != null && userInfo.size() != 0) {
+				JSONObject objId = (JSONObject) userInfo.get("_id");
+				currentUserId = objId.getString("$oid");
+			}
+		}
+		map.put("ownid", currentUserId);
 		map.put("engerid", 0);
 		map.put("gov", "0");
 		map.put("desp", "");
@@ -127,20 +139,20 @@ public class WebInfo {
 	}
 
 	// 设置网站管理员
-	public String setManager(String wbid, String userid) {
-		int roleplv = 0;
-		String info = web.resultMessage(99, "");
-		String sid = (String) execRequest.getChannelValue("GrapeSID");
-		if (sid != null) {
-			privilige pril = new privilige(sid);
-			roleplv = pril.getRolePV(appsProxy.appidString());
-		}
-		if (roleplv > 10000) {
-			// 设置管理员
-			info = web.setManage(wbid, userid);
-		}
-		return info;
-	}
+	// public String setManager(String wbid, String userid) {
+	// int roleplv = 0;
+	// String info = web.resultMessage(99, "");
+	// String sid = (String) execRequest.getChannelValue("GrapeSID");
+	// if (sid != null) {
+	// privilige pril = new privilige(sid);
+	// roleplv = pril.getRolePV(appsProxy.appidString());
+	// }
+	// if (roleplv > 10000) {
+	// // 设置管理员
+	// info = web.setManage(wbid, userid);
+	// }
+	// return info;
+	// }
 
 	// 切换网站
 	public String SwitchWeb(String wbid) {
@@ -152,12 +164,37 @@ public class WebInfo {
 		return web.getWebID4All(root);
 	}
 
-	//批量获取网站信息
-	public String getAllWeb(int idx,int pageSize,String root) {
-		long total =0,totalSize=0;
+	// 获取当前站点及全部父站点信息
+	public String getFatherWeb(int idx, int pageSize, String root) {
+		// String wbid = web.getWebFID(root); //包含自身网站
+		String wbid = web.getFID(root); // 不包含自身网站
+		return getWeb(wbid, idx, pageSize);
+	}
+	// 批量获取网站信息
+		private String getWeb(String wbid, int idx, int pageSize) {
+			long total = 0, totalSize = 0;
+			JSONArray array =null;
+			if (!wbid.equals("")) {
+				String[] wbids = wbid.split(",");
+				db db = getdb().or();
+				for (String value : wbids) {
+					if (value!=null && !value.equals("")) {
+						db.eq("_id", value);
+					}
+				}
+				array = db.dirty().page(idx, pageSize);
+				totalSize = db.dirty().pageMax(pageSize);
+				total = db.dirty().count();
+			}
+			return web.PageShow(array, totalSize, idx, pageSize, total);
+		}
+
+	// 批量获取网站信息
+	public String getAllWeb(int idx, int pageSize, String root) {
+		long total = 0, totalSize = 0;
 		String wbid = getWebTree(root);
 		String[] wbids = wbid.split(",");
-		db db = getdb();
+		db db = getdb().or();
 		for (String value : wbids) {
 			db.eq("_id", value);
 		}
@@ -166,6 +203,7 @@ public class WebInfo {
 		total = db.dirty().count();
 		return web.PageShow(array, totalSize, idx, pageSize, total);
 	}
+
 	// 获取网站默认缩略图
 	public String getImage(String wbid) {
 		String url = "http://" + web.getFile(1);
@@ -178,6 +216,35 @@ public class WebInfo {
 		}
 		obj.put("thumbnail", image);
 		return obj.toJSONString();
+	}
+
+	/**
+	 * 查询网站访问量
+	 * 
+	 * @project GrapeWebInfo
+	 * @package interfaceApplication
+	 * @file WebInfo.java
+	 * 
+	 * @param condString
+	 * @return
+	 *
+	 */
+	public String view(String condString) {
+		JSONObject object = null;
+		String temp = "";
+		JSONArray condArray = JSONArray.toJSONArray(condString);
+		if (condArray != null && condArray.size() != 0) {
+			db db = getdb();
+			object = db.where(condArray).field("allno").find();
+		}
+		if (object != null && object.size() != 0) {
+			temp = object.getString("allno");
+		}
+		if (temp.contains("$numberLong")) {
+			temp = JSONObject.toJSON(temp).getString("$numberLong");
+		}
+		object.put("allno", temp);
+		return web.resultMessage(object);
 	}
 
 	/**

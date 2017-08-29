@@ -27,7 +27,6 @@ public class WebGroupModel {
 	public WebGroupModel() {
 		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(), "wbGroup");
 		_form = dbwebgroup.getChecker();
-		_form.putRule("name", formdef.notNull);
 	}
 
 	private db bind() {
@@ -44,9 +43,6 @@ public class WebGroupModel {
 		int code = 99;
 		if (webgroupInfo != null) {
 			try {
-				if (!_form.checkRuleEx(webgroupInfo)) {
-					return 1; // 必填字段没有填
-				}
 				// 判断库中是否存在同名站群
 				String name = webgroupInfo.get("name").toString();
 				if (findByName(name) != null) {
@@ -120,10 +116,6 @@ public class WebGroupModel {
 		int code = 99;
 		JSONObject _webinfo = JSONHelper.string2json(webinfo);
 		if (_webinfo != null) {
-			// 非空字段判断
-			if (!_form.checkRule(_webinfo)) {
-				return 1;
-			}
 			if (_webinfo.containsKey("name")) {
 				String name = _webinfo.get("name").toString();
 				if (findByName(name) != null) {
