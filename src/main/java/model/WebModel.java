@@ -59,108 +59,108 @@ public class WebModel {
 			if (obj == null) {
 				object = findbyid(info); // 获取新增的网站信息
 				// 判断该网站是否为根网站,并填充栏目数据
-				IsRoot(info, object);
+//				IsRoot(info, object);
 				return resultMessage(object);
 			}
 		}
 		return info;
 	}
 
-	private long AddColumn(String wbid, JSONArray array) {
-		long rs = 0;
-		JSONObject json;
-		JSONObject temp;
-		JSONObject mapMap = new JSONObject();// 栏目老id,栏目新id
-		String newCID;
-		String oldCID;
-		JSONObject cacheObj = new JSONObject();
-		for (Object obj : array) {
-			json = (JSONObject) obj;// GroupInsert
-			oldCID = ((JSONObject) json.get("_id")).get("$oid").toString();
-			json.put("wbid", wbid);
-			json.remove("_id");
-			temp = JSONObject.toJSON(appsProxy
-					.proxyCall("/GrapeContent/ContentGroup/GroupInsert/" + columnInfo(json), null, null).toString());
-			if (temp != null && temp.getLong("errorcode") == 0) {// 插入新栏目成功
-				temp = ((JSONObject) ((JSONObject) temp.get("message")).get("records"));
-				newCID = ((JSONObject) temp.get("_id")).getString("$oid");
-				mapMap.put(oldCID, newCID);// 建立新老栏目ID映射表
-				cacheObj.put(newCID, temp);
-			} else {
-				return 0;
-			}
-		}
-		String tempFatherID;
-		String fatherNewID;
-		JSONObject result;
-		boolean reTry = true;
-		long tryNo = 0;
-		long tryNax = 5;
-		for (Object obj : cacheObj.keySet()) {
-			temp = (JSONObject) cacheObj.get(obj);
-			tempFatherID = temp.get("fatherid").toString();
-			if (tempFatherID.contains("$numberLong")) {
-				tempFatherID = JSONHelper.string2json(tempFatherID).getString("$numberLong");
-			}
-			if (!tempFatherID.equals("0")) {
-				fatherNewID = mapMap.get(tempFatherID).toString();
-				while (reTry && tryNo < tryNax) {
-					reTry = false;
-					result = JSONObject
-							.toJSON(appsProxy
-									.proxyCall(
-											"/GrapeContent/ContentGroup/GroupEdit/" + obj.toString() + "/"
-													+ (new JSONObject("fatherid", fatherNewID)).toJSONString(),
-											null, null)
-									.toString());
-					if (result != null && result.getLong("errorcode") == 99) {
-						reTry = true;
-						tryNo++;
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
-							;
-						}
-					} else {
-						rs++;
-					}
-				}
-				reTry = true;
-			}
-		}
-		return rs;
-	}
+//	private long AddColumn(String wbid, JSONArray array) {
+//		long rs = 0;
+//		JSONObject json;
+//		JSONObject temp;
+//		JSONObject mapMap = new JSONObject();// 栏目老id,栏目新id
+//		String newCID;
+//		String oldCID;
+//		JSONObject cacheObj = new JSONObject();
+//		for (Object obj : array) {
+//			json = (JSONObject) obj;// GroupInsert
+//			oldCID = ((JSONObject) json.get("_id")).get("$oid").toString();
+//			json.put("wbid", wbid);
+//			json.remove("_id");
+//			temp = JSONObject.toJSON(appsProxy
+//					.proxyCall("/GrapeContent/ContentGroup/GroupInsert/" + columnInfo(json), null, null).toString());
+//			if (temp != null && temp.getLong("errorcode") == 0) {// 插入新栏目成功
+//				temp = ((JSONObject) ((JSONObject) temp.get("message")).get("records"));
+//				newCID = ((JSONObject) temp.get("_id")).getString("$oid");
+//				mapMap.put(oldCID, newCID);// 建立新老栏目ID映射表
+//				cacheObj.put(newCID, temp);
+//			} else {
+//				return 0;
+//			}
+//		}
+//		String tempFatherID;
+//		String fatherNewID;
+//		JSONObject result;
+//		boolean reTry = true;
+//		long tryNo = 0;
+//		long tryNax = 5;
+//		for (Object obj : cacheObj.keySet()) {
+//			temp = (JSONObject) cacheObj.get(obj);
+//			tempFatherID = temp.get("fatherid").toString();
+//			if (tempFatherID.contains("$numberLong")) {
+//				tempFatherID = JSONHelper.string2json(tempFatherID).getString("$numberLong");
+//			}
+//			if (!tempFatherID.equals("0")) {
+//				fatherNewID = mapMap.get(tempFatherID).toString();
+//				while (reTry && tryNo < tryNax) {
+//					reTry = false;
+//					result = JSONObject
+//							.toJSON(appsProxy
+//									.proxyCall(
+//											"/GrapeContent/ContentGroup/GroupEdit/" + obj.toString() + "/"
+//													+ (new JSONObject("fatherid", fatherNewID)).toJSONString(),
+//											null, null)
+//									.toString());
+//					if (result != null && result.getLong("errorcode") == 99) {
+//						reTry = true;
+//						tryNo++;
+//						try {
+//							Thread.sleep(2000);
+//						} catch (InterruptedException e) {
+//							;
+//						}
+//					} else {
+//						rs++;
+//					}
+//				}
+//				reTry = true;
+//			}
+//		}
+//		return rs;
+//	}
 
-	private String IsRoot(String wbid, JSONObject object) {
-		long l = 0;
-		try {
-			String fid = object.getString("fatherid");
-
-			if (!fid.equals("0")) {
-				// 获取上一级栏目
-				JSONObject obj = findbyid(fid);
-				if (obj != null) {
-					String prevfid = obj.getString("fatherid");
-					if (!prevfid.equals("0")) {
-						// 获取该fid下所有栏目
-						// String columns =
-						// appsProxy.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/"
-						// + fid)
-						// .toString();
-						String columns = appsProxy
-								.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/" + fid, null, null).toString();
-						l = AddColumn(wbid, JSONHelper.string2array(columns));
-					}
-				}
-			} else {
-				l = 1;
-			}
-		} catch (Exception e) {
-			nlogger.logout(e);
-			l = 0;
-		}
-		return String.valueOf(l);
-	}
+//	private String IsRoot(String wbid, JSONObject object) {
+//		long l = 0;
+//		try {
+//			String fid = object.getString("fatherid");
+//
+//			if (!fid.equals("0")) {
+//				// 获取上一级栏目
+//				JSONObject obj = findbyid(fid);
+//				if (obj != null) {
+//					String prevfid = obj.getString("fatherid");
+//					if (!prevfid.equals("0")) {
+//						// 获取该fid下所有栏目
+//						// String columns =
+//						// appsProxy.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/"
+//						// + fid)
+//						// .toString();
+//						String columns = appsProxy
+//								.proxyCall("/GrapeContent/ContentGroup/getPrevColumn/" + fid, null, null).toString();
+//						l = AddColumn(wbid, JSONHelper.string2array(columns));
+//					}
+//				}
+//			} else {
+//				l = 1;
+//			}
+//		} catch (Exception e) {
+//			nlogger.logout(e);
+//			l = 0;
+//		}
+//		return String.valueOf(l);
+//	}
 
 	private String columnInfo(JSONObject object) {
 		String value = "";
