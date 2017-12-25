@@ -15,22 +15,23 @@ import check.formHelper;
 import check.formHelper.formdef;
 import database.DBHelper;
 import database.db;
+import interfaceModel.GrapeDBSpecField;
+import interfaceModel.GrapeTreeDBModel;
 import json.JSONHelper;
 import nlogger.nlogger;
 
 @SuppressWarnings("unchecked")
 public class WebGroupModel {
-	private DBHelper dbwebgroup;
-	private formHelper _form;
+	private GrapeTreeDBModel dbwebgroup;
+    private GrapeDBSpecField gDbSpecField;
 	private JSONObject _obj = new JSONObject();
 
 	public WebGroupModel() {
-		dbwebgroup = new DBHelper(appsProxy.configValue().get("db").toString(), "wbGroup");
-		_form = dbwebgroup.getChecker();
-	}
-
-	private db bind() {
-		return dbwebgroup.bind(String.valueOf(appsProxy.appid()));
+		dbwebgroup = new GrapeTreeDBModel();
+        gDbSpecField = new GrapeDBSpecField();
+        gDbSpecField.importDescription(appsProxy.tableConfig("WebGroup"));
+        dbwebgroup.descriptionModel(gDbSpecField);
+        dbwebgroup.bindApp();
 	}
 
 	/**
@@ -48,7 +49,7 @@ public class WebGroupModel {
 				if (findByName(name) != null) {
 					return 2;
 				}
-				code = bind().data(webgroupInfo).insertOnce() != null ? 0 : 99;
+				code = dbwebgroup.data(webgroupInfo).autoComplete().insertOnce() != null ? 0 : 99;
 			} catch (Exception e) {
 				nlogger.logout(e);
 				code = 99;
@@ -60,7 +61,7 @@ public class WebGroupModel {
 	public int delete(String id) {
 		int code = 99;
 		try {
-			JSONObject object = bind().eq("_id", new ObjectId(id)).delete();
+			JSONObject object = dbwebgroup.eq("_id", new ObjectId(id)).delete();
 			code = (object != null ? 0 : 99);
 		} catch (Exception e) {
 			nlogger.logout(e);
@@ -73,7 +74,7 @@ public class WebGroupModel {
 		JSONArray array = null;
 		try {
 			array = new JSONArray();
-			array = bind().limit(30).select();
+			array = dbwebgroup.limit(30).select();
 		} catch (Exception e) {
 			nlogger.logout(e);
 			array = null;
@@ -88,11 +89,11 @@ public class WebGroupModel {
 			array = new JSONArray();
 			for (Object object2 : object.keySet()) {
 				if (object2.equals("_id")) {
-					bind().eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+					dbwebgroup.eq("_id", new ObjectId(object.get(object2.toString()).toString()));
 				}
-				bind().eq(object2.toString(), object.get(object2.toString()));
+				dbwebgroup.eq(object2.toString(), object.get(object2.toString()));
 			}
-			array = bind().limit(30).select();
+			array = dbwebgroup.limit(30).select();
 		} catch (Exception e) {
 			nlogger.logout(e);
 			array = null;
@@ -104,7 +105,7 @@ public class WebGroupModel {
 		JSONObject object = null;
 		try {
 			object = new JSONObject();
-			object = bind().eq("_id", new ObjectId(wbid)).find();
+			object = dbwebgroup.eq("_id", new ObjectId(wbid)).find();
 		} catch (Exception e) {
 			nlogger.logout(e);
 			object = null;
@@ -122,7 +123,7 @@ public class WebGroupModel {
 					return 2;
 				}
 			}
-			JSONObject object = bind().eq("_id", new ObjectId(wbgid)).data(_webinfo).update();
+			JSONObject object = dbwebgroup.eq("_id", new ObjectId(wbgid)).data(_webinfo).update();
 			code = (object != null ? 0 : 99);
 		}
 		return code;
@@ -138,7 +139,7 @@ public class WebGroupModel {
 			if (object.containsKey("fatherid")) {
 				_obj.put("fatherid", object.get("fatherid").toString());
 			}
-			 JSONObject objs = bind().eq("_id", new ObjectId(object.get("_id").toString())).data(_obj).update();
+			 JSONObject objs = dbwebgroup.eq("_id", new ObjectId(object.get("_id").toString())).data(_obj).update();
 			 code = (objs!= null ? 0 : 99);
 		}
 		return code;
@@ -147,9 +148,9 @@ public class WebGroupModel {
 	public String page(int idx, int pageSize) {
 		JSONObject object = null;
 		try {
-			JSONArray array = bind().page(idx, pageSize);
+			JSONArray array = dbwebgroup.page(idx, pageSize);
 			object = new JSONObject();
-			object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+			object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
 			object.put("currentPage", idx);
 			object.put("pageSize", pageSize);
 			object.put("data", array);
@@ -166,11 +167,11 @@ public class WebGroupModel {
 		if (obj!=null) {
 			try {
 				for (Object object2 : obj.keySet()) {
-					bind().eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
+					dbwebgroup.eq(object2.toString(), JSONHelper.string2json(webinfo).get(object2.toString()));
 				}
-				JSONArray array = bind().page(idx, pageSize);
+				JSONArray array = dbwebgroup.page(idx, pageSize);
 				object = new JSONObject();
-				object.put("totalSize", (int) Math.ceil((double) bind().count() / pageSize));
+				object.put("totalSize", (int) Math.ceil((double) dbwebgroup.count() / pageSize));
 				object.put("currentPage", idx);
 				object.put("pageSize", pageSize);
 				object.put("data", array);
@@ -183,11 +184,11 @@ public class WebGroupModel {
 	}
 
 	public JSONObject findByName(String name) {
-		return bind().eq("name", name).find();
+		return dbwebgroup.eq("name", name).find();
 	}
 
 	public String findbyfatherid(String fatherid) {
-		JSONArray array = bind().eq("fatherid", fatherid).limit(30).select();
+		JSONArray array = dbwebgroup.eq("fatherid", fatherid).limit(30).select();
 		JSONObject _obj;
 		String name = null;
 		if (array.size()!=0) {
@@ -202,18 +203,18 @@ public class WebGroupModel {
 	// public String setfatherid(String wbgid, String fathrid) {
 	// JSONObject _obj = new JSONObject();
 	// _obj.put("fatherid", fathrid);
-	// return bind().eq("_id", new
+	// return dbwebgroup.eq("_id", new
 	// ObjectId(wbgid)).data(_obj).update().toString();
 	// }
 
 	public int delete(String[] arr) {
 		int code = 99;
 		try {
-			bind().or();
+			dbwebgroup.or();
 			for (int i = 0, len = arr.length; i < len; i++) {
-				bind().eq("_id", new ObjectId(arr[i]));
+				dbwebgroup.eq("_id", new ObjectId(arr[i]));
 			}
-			long codes = bind().deleteAll();
+			long codes = dbwebgroup.deleteAll();
 			code = (Integer.parseInt(String.valueOf(codes)) == arr.length ? 0 : 99);
 		} catch (Exception e) {
 			nlogger.logout(e);

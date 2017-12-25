@@ -1,16 +1,13 @@
 package interfaceApplication;
 
-import java.util.HashMap;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import apps.appsProxy;
 import database.db;
+import interfaceModel.GrapeTreeDBModel;
 import json.JSONHelper;
 import model.WebModel;
-import rpc.execRequest;
-import session.session;
 
 /**
  * 网站信息 备注：涉及到的id都是数据表中的_id
@@ -19,44 +16,6 @@ import session.session;
 @SuppressWarnings("unchecked")
 public class WebInfo {
 	private WebModel web = new WebModel();
-	private HashMap<String, Object> map = new HashMap<>();
-	private session session = new session();
-	private String sid = null;
-	private JSONObject userInfo = new JSONObject();
-	private String currentUserId = "";
-
-	public WebInfo() {
-		sid = (String) execRequest.getChannelValue("sid");
-		if (sid != null) {
-			userInfo = session.getDatas();
-			if (userInfo != null && userInfo.size() != 0) {
-				JSONObject objId = (JSONObject) userInfo.get("_id");
-				currentUserId = objId.getString("$oid");
-			}
-		}
-		map.put("ownid", currentUserId);
-		map.put("engerid", 0);
-		map.put("gov", "0");
-		map.put("desp", "");
-		map.put("policeid", "");
-		map.put("wbgid", 0);
-		map.put("isdelete", 0);
-		map.put("isvisble", 0);
-		map.put("tid", 0);
-		map.put("sort", 0);
-		map.put("authid", 0);
-		map.put("taskid", 0);
-		map.put("fatherid", "0"); // 上级网站id
-		map.put("r", 1000); // 读取 权限值
-		map.put("u", 2000); // 修改 权限值
-		map.put("d", 3000); // 删除 权限值
-		map.put("host", "");
-		map.put("logo", "");
-		map.put("icp", "");
-		map.put("allno", 0); // 网站总访问量统计
-		map.put("thumbnail", ""); // 文章默认缩略图
-	}
-
 	/**
 	 * 
 	 * @param webInfo
@@ -65,7 +24,8 @@ public class WebInfo {
 	 *         6：网站描述字数超过限制
 	 */
 	public String WebInsert(String webInfo) {
-		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
+		JSONObject object = JSONObject.toJSON(webInfo);
+//		JSONObject object = web.AddMap(map, JSONHelper.string2json(webInfo));
 		return web.addweb(object);
 	}
 
@@ -176,7 +136,8 @@ public class WebInfo {
 			JSONArray array =null;
 			if (!wbid.equals("")) {
 				String[] wbids = wbid.split(",");
-				db db = getdb().or();
+				GrapeTreeDBModel db = web.getDB();
+				db.or();
 				for (String value : wbids) {
 					if (value!=null && !value.equals("")) {
 						db.eq("_id", value);
@@ -194,7 +155,8 @@ public class WebInfo {
 		long total = 0, totalSize = 0;
 		String wbid = getWebTree(root);
 		String[] wbids = wbid.split(",");
-		db db = getdb().or();
+		GrapeTreeDBModel db = web.getDB();
+		db.or();
 		for (String value : wbids) {
 			db.eq("_id", value);
 		}
@@ -208,7 +170,7 @@ public class WebInfo {
 	public String getImage(String wbid) {
 		String url = "http://" + web.getFile(1);
 		String image = "";
-		db db = getdb();
+		GrapeTreeDBModel db = web.getDB();
 		JSONObject obj = db.eq("_id", wbid).field("thumbnail").limit(1).find();
 		if (obj != null && obj.size() != 0 && obj.containsKey("thumbnail")) {
 			image = obj.getString("thumbnail");
@@ -234,7 +196,7 @@ public class WebInfo {
 		String temp = "";
 		JSONArray condArray = JSONArray.toJSONArray(condString);
 		if (condArray != null && condArray.size() != 0) {
-			db db = getdb();
+			GrapeTreeDBModel db = web.getDB();
 			object = db.where(condArray).field("allno").find();
 		}
 		if (object != null && object.size() != 0) {
@@ -265,7 +227,7 @@ public class WebInfo {
 		if (condArray != null && condArray.size() != 0) {
 			int count = getCount(condArray);
 			data = "{\"allno\":" + count + "}";
-			db db = getdb();
+			GrapeTreeDBModel db = web.getDB();
 			code = db.where(condArray).data(data).update() != null ? 0 : 99;
 		}
 		return web.resultMessage(code, "新增访问量");
@@ -274,7 +236,7 @@ public class WebInfo {
 	// 当前网站的统计量 +1
 	private int getCount(JSONArray condArray) {
 		int count = 0;
-		db db = getdb();
+		GrapeTreeDBModel db = web.getDB();
 		JSONObject object = db.where(condArray).field("allno").limit(1).find();
 		if (object != null && object.size() != 0) {
 			if (object.containsKey("allno")) {
@@ -286,9 +248,5 @@ public class WebInfo {
 			}
 		}
 		return count + 1;
-	}
-
-	private db getdb() {
-		return web.bind();
 	}
 }

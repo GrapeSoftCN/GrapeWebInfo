@@ -18,19 +18,9 @@ import model.WebGroupModel;
  */
 public class WebGroup {
 	private WebGroupModel webgroup = new WebGroupModel();
-	private HashMap<String, Object> defmap = new HashMap<>();
-
-	public WebGroup() {
-		defmap.put("ownid", 1);
-		defmap.put("sort", 0);
-		defmap.put("fatherid", 0); // 默认fatherid为0，为一级站群
-		defmap.put("rPlv", 1000); // 读取 权限值
-		defmap.put("uPlv", 2000); // 修改 权限值
-		defmap.put("dPlv", 3000); // 删除 权限值
-	}
 
 	public String WebGroupInsert(String webgroupInfo) {
-		JSONObject object = webgroup.AddMap(defmap, JSONHelper.string2json(webgroupInfo));
+		JSONObject object = JSONObject.toJSON(webgroupInfo);
 		return webgroup.resultmessage(webgroup.add(object), "站群新增成功");
 	}
 

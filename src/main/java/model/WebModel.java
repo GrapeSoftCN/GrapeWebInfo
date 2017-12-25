@@ -15,11 +15,14 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import JGrapeSystem.jGrapeFW_Message;
+import JGrapeSystem.rMsg;
 import apps.appsProxy;
 import check.formHelper;
 import check.formHelper.formdef;
 import database.DBHelper;
 import database.db;
+import interfaceModel.GrapeDBSpecField;
+import interfaceModel.GrapeTreeDBModel;
 import json.JSONHelper;
 import nlogger.nlogger;
 import rpc.execRequest;
@@ -29,20 +32,30 @@ import string.StringHelper;
 
 @SuppressWarnings("unchecked")
 public class WebModel {
-	private DBHelper dbweb;
-	private formHelper _form;
+//	private DBHelper dbweb;
+	private GrapeTreeDBModel web;
 	private JSONObject _obj = new JSONObject();
-	// private privilige privil = new
-	// privilige(execRequest.getChannelValue("GrapeSID").toString());
+	private session se;
+    private JSONObject userInfo = null;
+    private String currentWeb = null;
 
 	public WebModel() {
-		dbweb = new DBHelper(appsProxy.configValue().get("db").toString(), "websiteList", "_id");
+		web = getDB();
+		
+		se = new session();
+        userInfo = se.getDatas();
 	}
 
-	public db bind() {
-		return dbweb.bind(String.valueOf(appsProxy.appid()));
+	public GrapeTreeDBModel getDB() {
+		GrapeTreeDBModel web = new GrapeTreeDBModel();
+	    GrapeDBSpecField gDbSpecField;
+		web = new GrapeTreeDBModel();
+        gDbSpecField = new GrapeDBSpecField();
+        gDbSpecField.importDescription(appsProxy.tableConfig("WebInfo"));
+        web.descriptionModel(gDbSpecField);
+        web.bindApp();
+        return web;
 	}
-
 	/**
 	 * 
 	 * @param webInfo
@@ -176,7 +189,7 @@ public class WebModel {
 	public int delete(String webid) {
 		int code = 99;
 		try {
-			JSONObject object = bind().findOne().eq("_id", new ObjectId(webid)).delete();
+			JSONObject object = web.findOne().eq("_id", new ObjectId(webid)).delete();
 			code = (object != null ? 0 : 99);
 		} catch (Exception e) {
 			nlogger.logout(e);
@@ -204,7 +217,7 @@ public class WebModel {
 						}
 					}
 				}
-				JSONObject object = bind().eq("_id", new ObjectId(wbid)).data(webinfo).update();
+				JSONObject object = web.eq("_id", new ObjectId(wbid)).data(webinfo).update();
 				code = (object != null ? 0 : 99);
 			} catch (Exception e) {
 				code = 99;
@@ -234,7 +247,7 @@ public class WebModel {
 		int code = 99;
 		if (webinfo != null) {
 			try {
-				long codes = bind().eq("wbgid", wbgid).data(webinfo).updateAll();
+				long codes = web.eq("wbgid", wbgid).data(webinfo).updateAll();
 				code = (codes != 0 ? 0 : 99);
 			} catch (Exception e) {
 				code = 99;
@@ -251,11 +264,11 @@ public class WebModel {
 				array = new JSONArray();
 				for (Object object2 : object.keySet()) {
 					if (object2.equals("_id")) {
-						bind().eq("_id", new ObjectId(object.get(object2.toString()).toString()));
+						web.eq("_id", new ObjectId(object.get(object2.toString()).toString()));
 					}
-					bind().eq(object2.toString(), object.get(object2.toString()));
+					web.eq(object2.toString(), object.get(object2.toString()));
 				}
-				array = bind().limit(20).select();
+				array = web.limit(20).select();
 			} catch (Exception e) {
 				array = null;
 			}
@@ -281,12 +294,12 @@ public class WebModel {
 	public String selectbyid(String wbid) {
 		JSONArray array = null;
 		if (wbid != null && !wbid.equals("")) {
-			bind().or();
+			web.or();
 			String[] wbids = wbid.split(",");
 			for (int i = 0, len = wbids.length; i < len; i++) {
-				bind().eq("_id", wbids[i]);
+				web.eq("_id", wbids[i]);
 			}
-			array = bind().limit(10).select();
+			array = web.limit(10).select();
 		}
 		return resultMessage(array);
 	}
@@ -295,7 +308,7 @@ public class WebModel {
 		JSONObject object = null;
 		try {
 			object = new JSONObject();
-			object = bind().eq("_id", new ObjectId(wbid)).find();
+			object = web.eq("_id", new ObjectId(wbid)).find();
 		} catch (Exception e) {
 			nlogger.logout(e);
 			object = null;
@@ -307,7 +320,7 @@ public class WebModel {
 		JSONArray array = null;
 		try {
 			array = new JSONArray();
-			array = bind().eq("wbgid", wbgid).limit(20).select();
+			array = web.eq("wbgid", wbgid).limit(20).select();
 		} catch (Exception e) {
 			array = null;
 		}
@@ -369,7 +382,7 @@ public class WebModel {
 	private db getPageDB(String webinfo) {
 		String key;
 		Object value;
-		db db = bind();
+		db db = web;
 		if (webinfo != null) {
 			JSONObject obj = JSONHelper.string2json(webinfo);
 			if (obj != null && obj.size() != 0) {
@@ -389,7 +402,7 @@ public class WebModel {
 		object.put("sort", num);
 		if (object != null) {
 			try {
-				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				JSONObject object2 = web.eq("_id", new ObjectId(wbid)).data(object).update();
 				code = (object2 != null ? 0 : 99);
 			} catch (Exception e) {
 				code = 99;
@@ -404,7 +417,7 @@ public class WebModel {
 		object.put("wbgid", wbgid);
 		if (object != null) {
 			try {
-				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				JSONObject object2 = web.eq("_id", new ObjectId(wbid)).data(object).update();
 				code = (object2 != null ? 0 : 99);
 			} catch (Exception e) {
 				code = 99;
@@ -419,7 +432,7 @@ public class WebModel {
 		object.put("tid", tempid);
 		if (object != null) {
 			try {
-				JSONObject object2 = bind().eq("_id", new ObjectId(wbid)).data(object).update();
+				JSONObject object2 = web.eq("_id", new ObjectId(wbid)).data(object).update();
 				code = (object2 != null ? 0 : 99);
 			} catch (Exception e) {
 				code = 99;
@@ -428,6 +441,15 @@ public class WebModel {
 		return code;
 	}
 
+//	public String WebSwitch(String wbid) {
+//		String result = rMsg.netMSG(100, "站点切换失败");
+//        if (userInfo != null && userInfo.size() > 0) {
+//            userInfo.put("currentWeb", wbid);
+//            userInfo = se.setDatas(userInfo);
+//            result = rMsg.netMSG(0, "站点切换成功");
+//        }
+//        return result;
+//	}
 	// 切换网站，替换session会话中的currentWeb值
 	public String WebSwitch(String wbid) {
 		String sid = "";
@@ -440,7 +462,6 @@ public class WebModel {
 				if (obj != null) {
 					obj.put("currentWeb", wbid);
 					session.setDatas(obj);
-//					sid = session.setget(session.get(object.toString()), obj.toString());
 				}
 			} catch (Exception e) {
 				nlogger.logout(e);
@@ -461,7 +482,7 @@ public class WebModel {
 					userid = String.join(",", ownid, userid);
 				}
 				object.put("ownid", userid);
-				code = bind().eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
+				code = web.eq("_id", new ObjectId(wbid)).data(object).update() != null ? 0 : 99;
 			} catch (Exception e) {
 				nlogger.logout(e);
 				code = 99;
@@ -473,11 +494,11 @@ public class WebModel {
 	public int delete(String[] arr) {
 		int code = 99;
 		try {
-			bind().or();
+			web.or();
 			for (int i = 0, len = arr.length; i < len; i++) {
-				bind().eq("_id", new ObjectId(arr[i]));
+				web.eq("_id", new ObjectId(arr[i]));
 			}
-			long codes = bind().deleteAll();
+			long codes = web.deleteAll();
 			code = (Integer.parseInt(String.valueOf(codes)) == arr.length ? 0 : 99);
 		} catch (Exception e) {
 			nlogger.logout(e);
@@ -502,12 +523,12 @@ public class WebModel {
 	}
 
 	public JSONObject findWebByTitle(String title) {
-		JSONObject rs = bind().eq("title", title).find();
+		JSONObject rs = web.eq("title", title).find();
 		return rs;
 	}
 
 	public JSONObject findWebByICP(String icp) {
-		JSONObject rs = bind().eq("icp", icp).find();
+		JSONObject rs = web.eq("icp", icp).find();
 		return rs;
 	}
 
@@ -612,7 +633,7 @@ public class WebModel {
 						return resultMessage(6);
 					}
 				}
-				info = bind().data(webInfo).insertOnce().toString();
+				info = web.data(webInfo).autoComplete().insertOnce().toString();
 			} catch (Exception e) {
 				nlogger.logout(e);
 				return resultMessage(99);
@@ -633,14 +654,15 @@ public class WebModel {
 	 * 
 	 */
 	public String getWebID4All(String root) {
-		db db = bind();
+		db db = web;
 		JSONArray data = db.eq("fatherid", root).select();
 		JSONObject object;
 		String tmpWbid;
 		String rsString = root;
 		for (Object obj : data) {
 			object = (JSONObject) obj;
-			tmpWbid = ((JSONObject) object.get("_id")).get("$oid").toString();
+			tmpWbid = object.getString("_id");
+//			tmpWbid = ((JSONObject) object.get("_id")).get("$oid").toString();
 			rsString = rsString + "," + getWebID4All(tmpWbid);
 		}
 		return StringHelper.fixString(rsString, ',');
@@ -657,7 +679,7 @@ public class WebModel {
 	 *
 	 */
 	public String getFID(String root) {
-		db db = bind();
+		db db = web;
 		String rsString = "";
 		while (!root.equals("") && !root.equals("0")) {
 			JSONArray data = db.eq("_id", root).select();
