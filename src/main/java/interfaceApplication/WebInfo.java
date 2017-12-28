@@ -4,9 +4,8 @@ package interfaceApplication;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import database.db;
-import interfaceModel.GrapeTreeDBModel;
-import json.JSONHelper;
+import common.java.interfaceModel.GrapeTreeDBModel;
+import common.java.json.JSONHelper;
 import model.WebModel;
 
 /**

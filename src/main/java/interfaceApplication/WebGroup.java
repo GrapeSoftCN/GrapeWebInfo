@@ -7,8 +7,8 @@ import java.util.Properties;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import apps.appsProxy;
-import json.JSONHelper;
+import common.java.apps.appsProxy;
+import common.java.json.JSONHelper;
 import model.WebGroupModel;
 
 /**
